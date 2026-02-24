@@ -1,7 +1,10 @@
 package com.tqmane.filmsim
 
+import android.app.Activity.RESULT_OK
 import android.app.Dialog
 import android.content.Intent
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -46,6 +49,15 @@ class MainActivity : ComponentActivity() {
     private val pickMedia =
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             uri?.let { vm.loadImage(it) }
+        }
+
+    private val googleSignInLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                authVm.handleLegacySignInResult(result.data)
+            } else {
+                authVm.resetLoadingState()
+            }
         }
 
     // ─── Lifecycle ──────────────────────────────────────
@@ -135,7 +147,15 @@ class MainActivity : ComponentActivity() {
         updateAuthUi()
 
         dialog.findViewById<Button>(R.id.btnGoogleSignIn).setOnClickListener {
-            authVm.signInWithGoogle(this)
+            authVm.signInWithGoogle(this) {
+                // Fallback to old Google Sign In
+                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(AuthViewModel.WEB_CLIENT_ID)
+                    .requestEmail()
+                    .build()
+                val mGoogleSignInClient = GoogleSignIn.getClient(this, gso)
+                googleSignInLauncher.launch(mGoogleSignInClient.signInIntent)
+            }
         }
         dialog.findViewById<Button>(R.id.btnSignOut).setOnClickListener {
             authVm.signOut(this)
@@ -198,7 +218,6 @@ class MainActivity : ComponentActivity() {
         }
         dialog.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnLater)
             .setOnClickListener {
-                updateChecker.skipVersion(release.version)
                 dialog.dismiss()
             }
         dialog.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnUpdate)

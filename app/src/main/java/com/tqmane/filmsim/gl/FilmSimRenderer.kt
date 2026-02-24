@@ -202,7 +202,7 @@ class FilmSimRenderer(context: Context) : BaseRenderer(context), GLSurfaceView.R
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        GLES30.glClearColor(0.05f, 0.05f, 0.05f, 1.0f)
+        GLES30.glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
         
         // Update input texture if needed

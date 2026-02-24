@@ -17,7 +17,4 @@ class UpdateCheckerWrapper @Inject constructor(
 ) {
     suspend fun checkForUpdate(force: Boolean = false): ReleaseInfo? =
         UpdateCheckerObj.checkForUpdate(context, force)
-
-    fun skipVersion(version: String) =
-        UpdateCheckerObj.skipVersion(context, version)
 }

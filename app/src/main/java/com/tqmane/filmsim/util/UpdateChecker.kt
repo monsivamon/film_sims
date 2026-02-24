@@ -42,9 +42,7 @@ object UpdateChecker {
 
     private const val TAG = "UpdateChecker"
     private const val PREFS_NAME = "update_checker"
-    private const val KEY_SKIP_VERSION = "skip_version"
     private const val KEY_LAST_CHECK = "last_check"
-    private const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L // 24 hours
 
     private const val MAX_RETRIES = 3
     private const val INITIAL_BACKOFF_MS = 1_000L
@@ -71,13 +69,8 @@ object UpdateChecker {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val githubApiUrl = context.getString(R.string.github_api_url)
 
-        // Skip check if recently checked (unless forced)
-        if (!force) {
-            val lastCheck = prefs.getLong(KEY_LAST_CHECK, 0)
-            if (System.currentTimeMillis() - lastCheck < CHECK_INTERVAL_MS) {
-                return null
-            }
-        }
+        // The user requested to see the update dialog on every launch if an update is available.
+        // Interval checks have been removed.
 
         return withContext(Dispatchers.IO) {
             try {
@@ -94,9 +87,8 @@ object UpdateChecker {
 
                 // Check if this version is newer
                 val currentVersion = BuildConfig.VERSION_NAME
-                val skippedVersion = prefs.getString(KEY_SKIP_VERSION, null)
 
-                if (isNewerVersion(version, currentVersion) && version != skippedVersion) {
+                if (isNewerVersion(version, currentVersion)) {
                     ReleaseInfo(tagName, version, releaseNotes, htmlUrl)
                 } else {
                     null
@@ -149,15 +141,7 @@ object UpdateChecker {
         return null
     }
 
-    /**
-     * Mark a version as skipped so the user won't be prompted again.
-     */
-    fun skipVersion(context: Context, version: String) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_SKIP_VERSION, version)
-            .apply()
-    }
+
 
     /**
      * Compare two semantic versions (e.g., "1.0.1" vs "1.0.0").

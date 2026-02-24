@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -205,49 +206,72 @@ fun MainScreen(
             // Living Background (aurora + noise)
             LivingBackground(modifier = Modifier.fillMaxSize())
 
-            // GLSurfaceView (full screen)
-            AndroidView(
-                factory = { ctx ->
-                    GLSurfaceView(ctx).apply {
-                        setEGLContextClientVersion(3)
-                        preserveEGLContextOnPause = true
-                        val r = FilmSimRenderer(ctx)
-                        setRenderer(r)
-                        renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
-                        renderer = r
-                        glSurfaceView = this
-                        glExecutor = GlSurfaceViewExecutor(this)
-                        queueEvent { viewModel.gpuExportRenderer = GpuExportRenderer(ctx) }
+            // ─── Content Area (Behind Everything, Full Size) ────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (showAdjustPanel) {
+                            Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { showAdjustPanel = false }
+                        } else Modifier
+                    )
+            ) {
+                AndroidView(
+                    factory = { ctx ->
+                        GLSurfaceView(ctx).apply {
+                            setEGLContextClientVersion(3)
+                            setEGLConfigChooser(8, 8, 8, 8, 16, 0)
+                            holder.setFormat(android.graphics.PixelFormat.TRANSLUCENT)
+                            setZOrderMediaOverlay(true)
+                            preserveEGLContextOnPause = true
+                            val r = FilmSimRenderer(ctx)
+                            setRenderer(r)
+                            renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
+                            renderer = r
+                            glSurfaceView = this
+                            glExecutor = GlSurfaceViewExecutor(this)
+                            queueEvent { viewModel.gpuExportRenderer = GpuExportRenderer(ctx) }
 
-                        val th = GlTouchHandler(
-                            this, r,
-                            onSingleTap = { isImmersive = !isImmersive },
-                            onLongPressStart = {
-                                if (editState.hasSelectedLut && watermarkPreviewBitmap == null) {
-                                    queueEvent {
-                                        r.setIntensity(0f); r.setGrainEnabled(false)
-                                        requestRender()
+                            val th = GlTouchHandler(
+                                this, r,
+                                onSingleTap = { isImmersive = !isImmersive },
+                                onLongPressStart = {
+                                    if (editState.hasSelectedLut && watermarkPreviewBitmap == null) {
+                                        queueEvent {
+                                            r.setIntensity(0f); r.setGrainEnabled(false)
+                                            requestRender()
+                                        }
+                                    }
+                                },
+                                onLongPressEnd = {
+                                    if (watermarkPreviewBitmap == null) {
+                                        queueEvent {
+                                            r.setIntensity(editState.intensity)
+                                            r.setGrainEnabled(editState.grainEnabled)
+                                            if (editState.grainEnabled) r.setGrainIntensity(editState.grainIntensity)
+                                            requestRender()
+                                        }
                                     }
                                 }
-                            },
-                            onLongPressEnd = {
-                                if (watermarkPreviewBitmap == null) {
-                                    queueEvent {
-                                        r.setIntensity(editState.intensity)
-                                        r.setGrainEnabled(editState.grainEnabled)
-                                        if (editState.grainEnabled) r.setGrainIntensity(editState.grainIntensity)
-                                        requestRender()
-                                    }
-                                }
-                            }
-                        )
-                        th.install()
-                        touchHandler = th
+                            )
+                            th.install()
+                            touchHandler = th
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    update = { view ->
+                         view.visibility = if (viewState is ViewState.Content) android.view.View.VISIBLE else android.view.View.GONE
                     }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-            
+                )
+
+                if (viewState is ViewState.Empty) {
+                    LiquidPlaceholderContent(onPickImage = onPickImage)
+                }
+            }
+
             // ─── Main vertical Layout ─────────────────────────────────────────
             Column(modifier = Modifier.fillMaxSize()) {
 
@@ -277,25 +301,7 @@ fun MainScreen(
                     )
                 }
 
-                // ─── Content Area (weight=1) ────────────────────────────────────
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .then(
-                            if (showAdjustPanel) {
-                                Modifier.clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { showAdjustPanel = false }
-                            } else Modifier
-                        )
-                ) {
-                    if (viewState is ViewState.Empty) {
-                        LiquidPlaceholderContent(onPickImage = onPickImage)
-                    }
-                }
-
-                // ─── Adjust Panel (slides in from bottom) ───────────────────────
+                Spacer(modifier = Modifier.weight(1f))                // ─── Adjust Panel (slides in from bottom) ───────────────────────
                 AnimatedVisibility(
                     visible = !isImmersive && showAdjustPanel && editState.hasSelectedLut,
                     enter = slideInVertically { it } + fadeIn(),
@@ -316,7 +322,7 @@ fun MainScreen(
 
                 // ─── Bottom Control Panel (Glass Bottom Sheet) ──────────────────
                 AnimatedVisibility(
-                    visible = !isImmersive,
+                    visible = !isImmersive && viewState is ViewState.Content,
                     enter = slideInVertically { it } + fadeIn(),
                     exit = slideOutVertically { it } + fadeOut()
                 ) {
