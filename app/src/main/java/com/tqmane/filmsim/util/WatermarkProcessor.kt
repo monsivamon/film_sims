@@ -78,7 +78,7 @@ object WatermarkProcessor {
     private fun getHonorTypeface(context: Context): Typeface {
         honorTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, context.getString(R.string.honor_font_path)).also {
+            AssetUtil.loadTypeface(context, context.getString(R.string.honor_font_path)).also {
                 honorTypeface = it
             }
         } catch (e: Exception) {
@@ -727,7 +727,7 @@ object WatermarkProcessor {
     private fun getMeizuDeviceTypeface(context: Context): Typeface {
         meizuDeviceTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/Meizu/fonts/MEIZUCamera-Medium.otf").also {
+            AssetUtil.loadTypeface(context, "watermark/Meizu/fonts/MEIZUCamera-Medium.otf").also {
                 meizuDeviceTypeface = it
             }
         } catch (_: Exception) {
@@ -738,7 +738,7 @@ object WatermarkProcessor {
     private fun getMeizuTextMedium(context: Context): Typeface {
         meizuTextMedium?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/Meizu/fonts/TTForsMedium.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/Meizu/fonts/TTForsMedium.ttf").also {
                 meizuTextMedium = it
             }
         } catch (_: Exception) {
@@ -749,7 +749,7 @@ object WatermarkProcessor {
     private fun getMeizuTextRegular(context: Context): Typeface {
         meizuTextRegular?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/Meizu/fonts/TTForsRegular.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/Meizu/fonts/TTForsRegular.ttf").also {
                 meizuTextRegular = it
             }
         } catch (_: Exception) {
@@ -1534,7 +1534,7 @@ object WatermarkProcessor {
     private fun getVivoHeavy(context: Context): Typeface {
         vivoHeavyTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/vivo/fonts/vivotype-Heavy.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/vivo/fonts/vivotype-Heavy.ttf").also {
                 vivoHeavyTypeface = it
             }
         } catch (_: Exception) { Typeface.create("sans-serif", Typeface.BOLD) }
@@ -1544,7 +1544,7 @@ object WatermarkProcessor {
     private fun getVivoSansExp(context: Context): Typeface {
         vivoSansExpTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/vivo/fonts/vivoSansExpVF.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/vivo/fonts/vivoSansExpVF.ttf").also {
                 vivoSansExpTypeface = it
             }
         } catch (_: Exception) { getZeissBold(context) }
@@ -1553,7 +1553,7 @@ object WatermarkProcessor {
     private fun getVivoRegular(context: Context): Typeface {
         vivoRegularTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/vivo/fonts/vivo-Regular.otf").also {
+            AssetUtil.loadTypeface(context, "watermark/vivo/fonts/vivo-Regular.otf").also {
                 vivoRegularTypeface = it
             }
         } catch (_: Exception) { Typeface.create("sans-serif", Typeface.NORMAL) }
@@ -1562,7 +1562,7 @@ object WatermarkProcessor {
     private fun getVivoCamera(context: Context): Typeface {
         vivoCameraTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/vivo/fonts/vivoCameraVF.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/vivo/fonts/vivoCameraVF.ttf").also {
                 vivoCameraTypeface = it
             }
         } catch (_: Exception) { Typeface.create("sans-serif-medium", Typeface.NORMAL) }
@@ -1571,7 +1571,7 @@ object WatermarkProcessor {
     private fun getZeissBold(context: Context): Typeface {
         zeissBoldTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/vivo/fonts/ZEISSFrutigerNextW1G-Bold.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/vivo/fonts/ZEISSFrutigerNextW1G-Bold.ttf").also {
                 zeissBoldTypeface = it
             }
         } catch (_: Exception) { Typeface.create("sans-serif-medium", Typeface.BOLD) }
@@ -1580,7 +1580,7 @@ object WatermarkProcessor {
     private fun getIqooBold(context: Context): Typeface {
         iqooBoldTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/vivo/fonts/IQOOTYPE-Bold.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/vivo/fonts/IQOOTYPE-Bold.ttf").also {
                 iqooBoldTypeface = it
             }
         } catch (_: Exception) { Typeface.create("sans-serif", Typeface.BOLD) }
@@ -1589,7 +1589,7 @@ object WatermarkProcessor {
     private fun getRobotoBold(context: Context): Typeface {
         robotoBoldTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/vivo/fonts/Roboto-Bold.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/vivo/fonts/Roboto-Bold.ttf").also {
                 robotoBoldTypeface = it
             }
         } catch (_: Exception) { Typeface.create("sans-serif", Typeface.BOLD) }
@@ -1599,7 +1599,7 @@ object WatermarkProcessor {
     private fun getVivoTypeSimpleBold(context: Context): Typeface {
         vivoTypeSimpleBoldTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/vivo/fonts/vivotypeSimple-Bold.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/vivo/fonts/vivotypeSimple-Bold.ttf").also {
                 vivoTypeSimpleBoldTypeface = it
             }
         } catch (_: Exception) { getIqooBold(context) }
@@ -3352,7 +3352,7 @@ object WatermarkProcessor {
     private fun getTecnoBrandTypeface(context: Context): Typeface {
         tecnoBrandTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/TECNO/fonts/Transota0226-Regular.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/TECNO/fonts/Transota0226-Regular.ttf").also {
                 tecnoBrandTypeface = it
             }
         } catch (e: Exception) {
@@ -3363,7 +3363,7 @@ object WatermarkProcessor {
     private fun getTecnoDateTypeface(context: Context): Typeface {
         tecnoDateTypeface?.let { return it }
         return try {
-            Typeface.createFromAsset(context.assets, "watermark/TECNO/fonts/tos_regular.ttf").also {
+            AssetUtil.loadTypeface(context, "watermark/TECNO/fonts/tos_regular.ttf").also {
                 tecnoDateTypeface = it
             }
         } catch (e: Exception) {

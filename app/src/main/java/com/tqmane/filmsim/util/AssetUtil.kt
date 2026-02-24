@@ -1,7 +1,10 @@
 package com.tqmane.filmsim.util
 
 import android.content.Context
+import android.graphics.Typeface
+import java.io.File
 import java.io.FileNotFoundException
+import java.io.FileOutputStream
 import java.io.InputStream
 
 object AssetUtil {
@@ -23,6 +26,23 @@ object AssetUtil {
         } catch (e: FileNotFoundException) {
             // 3. Fallback to unencrypted path if .enc does not exist
             return context.assets.open(path)
+        }
+    }
+
+    /**
+     * Loads a Typeface from an potentially encrypted asset.
+     */
+    fun loadTypeface(context: Context, path: String): Typeface {
+        var tempFile: File? = null
+        try {
+            val inputStream = openAsset(context, path)
+            tempFile = File.createTempFile("font_", ".tmp", context.cacheDir)
+            FileOutputStream(tempFile).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+            return Typeface.createFromFile(tempFile)
+        } finally {
+            tempFile?.delete()
         }
     }
 }

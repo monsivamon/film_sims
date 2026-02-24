@@ -386,7 +386,7 @@ class TecnoWatermarkRenderer(private val context: Context) {
         typefaceCache[fontFileName]?.let { return it }
 
         val typeface = try {
-            Typeface.createFromAsset(context.assets, "watermark/TECNO/fonts/$fontFileName")
+            AssetUtil.loadTypeface(context, "watermark/TECNO/fonts/$fontFileName")
         } catch (e: Exception) {
             Log.e(TAG, "Error loading font $fontFileName", e)
             Typeface.DEFAULT

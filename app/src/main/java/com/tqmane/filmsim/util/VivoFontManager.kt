@@ -46,10 +46,10 @@ class VivoFontManager(private val context: Context) {
             if (fontFile != null) {
                 // Try primary path first, then alternative path
                 try {
-                    Typeface.createFromAsset(context.assets, FONT_PATH + fontFile)
+                    AssetUtil.loadTypeface(context, FONT_PATH + fontFile)
                 } catch (_: Exception) {
                     try {
-                        Typeface.createFromAsset(context.assets, FONT_PATH_ALT + fontFile)
+                        AssetUtil.loadTypeface(context, FONT_PATH_ALT + fontFile)
                     } catch (_: Exception) {
                         Typeface.create("sans-serif", Typeface.NORMAL)
                     }
