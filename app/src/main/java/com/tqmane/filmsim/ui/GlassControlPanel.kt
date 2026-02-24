@@ -326,6 +326,10 @@ fun LiquidAdjustPanel(
         modifier = modifier
             .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
             .background(LiquidColors.SurfaceDark.copy(alpha = 0.87f))
+            .clickable(
+                indication = null, 
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            ) {}
             .padding(top = 12.dp, bottom = 8.dp, start = 16.dp, end = 16.dp)
     ) {
         // ─── Tab Bar (Pill UI) ─────────────────────────────────────────────
@@ -519,19 +523,22 @@ private fun LiquidGrainControls(
 
     Slider(
         value = grainIntensity,
-        onValueChange = { grainIntensity = it },
-        onValueChangeFinished = {
-            viewModel.setGrainIntensity(grainIntensity)
-            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+        onValueChange = { value ->
+            grainIntensity = value
+            viewModel.setGrainIntensity(value)
+            // Remove haptic on every tiny change, optional. But keep it simple.
             if (grainEnabled) {
                 if (!isWatermarkActive) {
                     glSurfaceView?.queueEvent {
-                        renderer?.setGrainIntensity(grainIntensity)
+                        renderer?.setGrainIntensity(value)
                         glSurfaceView.requestRender()
                     }
                 }
                 onRefreshWatermark()
             }
+        },
+        onValueChangeFinished = {
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
         },
         enabled = grainEnabled,
         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),

@@ -26,10 +26,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -77,9 +79,12 @@ fun MainScreen(
         var panelExpanded by rememberSaveable { mutableStateOf(true) }
         var showAdjustPanel by rememberSaveable { mutableStateOf(false) }
 
-        // Lifted brand/category selection state (survives immersive toggle)
         val selectedBrandIndex by viewModel.selectedBrandIndex.collectAsState()
         val selectedCategoryIndex by viewModel.selectedCategoryIndex.collectAsState()
+
+        // Track UI heights for preview offset
+        var topBarHeightPx by remember { mutableFloatStateOf(0f) }
+        var bottomPanelHeightPx by remember { mutableFloatStateOf(0f) }
 
         // Handle UI events
         LaunchedEffect(Unit) {
@@ -116,6 +121,7 @@ fun MainScreen(
             val r = renderer ?: return@LaunchedEffect
             val gl = glSurfaceView ?: return@LaunchedEffect
             touchHandler?.resetZoom()
+            // We'll apply the vertical offset once height measurements are valid.
             val bmp = content.previewBitmap
             val lut = editState.currentLut
             val intensity = editState.intensity
@@ -198,6 +204,15 @@ fun MainScreen(
                 viewModel.renderWatermarkPreview { bmp -> watermarkPreviewBitmap = bmp }
             } else {
                 watermarkPreviewBitmap = null
+            }
+        }
+
+        // 6. 初期表示用のプレビューオフセット調整
+        var initialOffsetApplied by remember(viewState) { mutableStateOf(false) }
+        LaunchedEffect(topBarHeightPx, bottomPanelHeightPx, viewState) {
+            if (viewState is ViewState.Content && !initialOffsetApplied && topBarHeightPx > 0f && bottomPanelHeightPx > 0f) {
+                touchHandler?.applyVerticalOffset(topBarHeightPx, bottomPanelHeightPx)
+                initialOffsetApplied = true
             }
         }
 
@@ -298,56 +313,65 @@ fun MainScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+                            .onGloballyPositioned { topBarHeightPx = it.size.height.toFloat() }
                     )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))                // ─── Adjust Panel (slides in from bottom) ───────────────────────
-                AnimatedVisibility(
-                    visible = !isImmersive && showAdjustPanel && editState.hasSelectedLut,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut()
+                Spacer(modifier = Modifier.weight(1f))
+                // ─── Bottom Area (Adjust Panel & Control Panel combined for smooth animation) ───
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned { bottomPanelHeightPx = it.size.height.toFloat() }
                 ) {
-                    LiquidAdjustPanel(
-                        editState = editState,
-                        watermarkState = watermarkState,
-                        viewModel = viewModel,
-                        glSurfaceView = glSurfaceView,
-                        renderer = renderer,
-                        isWatermarkActive = watermarkPreviewBitmap != null,
-                        onRefreshWatermark = { refreshWatermarkPreview() },
-                        isProUser = isProUser,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                    // Adjust Panel (slides in from bottom without appearing detached)
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = !isImmersive && showAdjustPanel && editState.hasSelectedLut,
+                        enter = androidx.compose.animation.expandVertically(expandFrom = androidx.compose.ui.Alignment.Bottom) + fadeIn(),
+                        exit = androidx.compose.animation.shrinkVertically(shrinkTowards = androidx.compose.ui.Alignment.Bottom) + fadeOut()
+                    ) {
+                        LiquidAdjustPanel(
+                            editState = editState,
+                            watermarkState = watermarkState,
+                            viewModel = viewModel,
+                            glSurfaceView = glSurfaceView,
+                            renderer = renderer,
+                            isWatermarkActive = watermarkPreviewBitmap != null,
+                            onRefreshWatermark = { refreshWatermarkPreview() },
+                            isProUser = isProUser,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
-                // ─── Bottom Control Panel (Glass Bottom Sheet) ──────────────────
-                AnimatedVisibility(
-                    visible = !isImmersive && viewState is ViewState.Content,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut()
-                ) {
-                    GlassControlPanel(
-                        viewModel = viewModel,
-                        editState = editState,
-                        watermarkState = watermarkState,
-                        viewState = viewState,
-                        panelExpanded = panelExpanded,
-                        onTogglePanel = { panelExpanded = !panelExpanded },
-                        glSurfaceView = glSurfaceView,
-                        renderer = renderer,
-                        isWatermarkActive = watermarkPreviewBitmap != null,
-                        onRefreshWatermark = { refreshWatermarkPreview() },
-                        onLutReselected = { showAdjustPanel = !showAdjustPanel },
-                        isProUser = isProUser,
-                        selectedBrandIndex = selectedBrandIndex,
-                        onBrandIndexChanged = { viewModel.setSelectedBrandIndex(it) },
-                        selectedCategoryIndex = selectedCategoryIndex,
-                        onCategoryIndexChanged = { viewModel.setSelectedCategoryIndex(it) },
-                        squareTop = showAdjustPanel && editState.hasSelectedLut,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-                    )
+                    // Bottom Control Panel (Glass Bottom Sheet)
+                    AnimatedVisibility(
+                        visible = !isImmersive && viewState is ViewState.Content,
+                        enter = slideInVertically { it } + fadeIn(),
+                        exit = slideOutVertically { it } + fadeOut()
+                    ) {
+                        GlassControlPanel(
+                            viewModel = viewModel,
+                            editState = editState,
+                            watermarkState = watermarkState,
+                            viewState = viewState,
+                            panelExpanded = panelExpanded,
+                            onTogglePanel = { panelExpanded = !panelExpanded },
+                            glSurfaceView = glSurfaceView,
+                            renderer = renderer,
+                            isWatermarkActive = watermarkPreviewBitmap != null,
+                            onRefreshWatermark = { refreshWatermarkPreview() },
+                            onLutReselected = { showAdjustPanel = !showAdjustPanel },
+                            isProUser = isProUser,
+                            selectedBrandIndex = selectedBrandIndex,
+                            onBrandIndexChanged = { viewModel.setSelectedBrandIndex(it) },
+                            selectedCategoryIndex = selectedCategoryIndex,
+                            onCategoryIndexChanged = { viewModel.setSelectedCategoryIndex(it) },
+                            squareTop = showAdjustPanel && editState.hasSelectedLut,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+                        )
+                    }
                 }
             }
         }

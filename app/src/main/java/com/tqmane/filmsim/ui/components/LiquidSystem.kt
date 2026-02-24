@@ -453,11 +453,12 @@ fun LiquidIntensitySlider(
             value = sliderValue,
             onValueChange = {
                 sliderValue = it
+                onIntensityChange(it)
                 haptic.performHapticFeedback(
                     androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
                 )
             },
-            onValueChangeFinished = { onIntensityChange(sliderValue) },
+            onValueChangeFinished = { },
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
             colors = SliderDefaults.colors(
                 thumbColor = LiquidColors.AccentPrimary,
@@ -862,6 +863,10 @@ fun GlassBottomSheet(
         modifier = modifier
             .clip(RoundedCornerShape(topStart = topRadius, topEnd = topRadius))
             .background(LiquidColors.SurfaceDark.copy(alpha = 0.87f))
+            .clickable(
+                indication = null, 
+                interactionSource = remember { MutableInteractionSource() }
+            ) {}
             .padding(top = 16.dp, bottom = 20.dp, start = 16.dp, end = 16.dp),
         content = content
     )
