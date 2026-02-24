@@ -90,4 +90,22 @@
     <!-- Pro Licenses -->
     <string name="label_license_permanent">ترخيص دائم</string>
     <string name="label_license_version_mismatch">ترخيصك يقتصر على الإصدار %1$s!</string>
+
+    <!-- Translated UI additions -->
+    <string name="adjustments">تعديلات</string>
+    <string name="grain">تأثير</string>
+    <string name="watermark">علامة مائية</string>
+    <string name="watermark_select_brand">اختر علامة تجارية لرؤية أنماط العلامة المائية</string>
+    <string name="device_name">اسم الجهاز</string>
+    <string name="time">الوقت</string>
+    <string name="location">الموقع</string>
+    <string name="lens_info">معلومات العدسة</string>
+    <string name="label_account">حساب</string>
+    <string name="sign_in_description">قم بتسجيل الدخول باستخدام Google لفتح ميزات الترخيص</string>
+    <string name="btn_sign_in_google">الدخول بواسطة جوجل</string>
+    <string name="btn_sign_out">تسجيل خروج</string>
+    <string name="label_pro">ترخيص</string>
+    <string name="pro_brand_locked">ميزة الترخيص: قم بتسجيل الدخول لفتح هذه العلامة التجارية</string>
+    <string name="pro_watermark_locked">ميزة الترخيص: قم بتسجيل الدخول لفتح العلامات المائية</string>
+    <string name="pro_quality_limit">ميزة الترخيص: تتطلب الجودة أعلى من 60% ترخيصاً</string>
 </resources>

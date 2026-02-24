@@ -90,4 +90,22 @@
     <!-- Pro Licenses -->
     <string name="label_license_permanent">Dauerhafte Lizenz</string>
     <string name="label_license_version_mismatch">Ihre Lizenz ist auf Version %1$s beschränkt!</string>
+
+    <!-- Translated UI additions -->
+    <string name="adjustments">Anpassungen</string>
+    <string name="grain">Körnung</string>
+    <string name="watermark">Wasserzeichen</string>
+    <string name="watermark_select_brand">Wählen Sie eine Marke, um Wasserzeichen-Stile anzuzeigen</string>
+    <string name="device_name">Gerätename</string>
+    <string name="time">Zeit</string>
+    <string name="location">Ort</string>
+    <string name="lens_info">Objektiv-Info</string>
+    <string name="label_account">Konto</string>
+    <string name="sign_in_description">Melden Sie sich mit Google an, um Lizenzfunktionen freizuschalten</string>
+    <string name="btn_sign_in_google">Mit Google anmelden</string>
+    <string name="btn_sign_out">Abmelden</string>
+    <string name="label_pro">LIZENZ</string>
+    <string name="pro_brand_locked">Lizenzfunktion: Melden Sie sich an, um diese Marke freizuschalten</string>
+    <string name="pro_watermark_locked">Lizenzfunktion: Melden Sie sich an, um Wasserzeichen freizuschalten</string>
+    <string name="pro_quality_limit">Lizenzfunktion: Für eine Qualität über 60 % ist eine Lizenz erforderlich</string>
 </resources>

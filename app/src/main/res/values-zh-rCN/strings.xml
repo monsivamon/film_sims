@@ -149,4 +149,22 @@
     <!-- Pro Licenses -->
     <string name="label_license_permanent">永久许可证</string>
     <string name="label_license_version_mismatch">您的许可证仅限于版本 %1$s！</string>
+
+    <!-- Translated UI additions -->
+    <string name="adjustments">调整</string>
+    <string name="grain">效果</string>
+    <string name="watermark">水印</string>
+    <string name="watermark_select_brand">选择品牌以查看水印样式</string>
+    <string name="device_name">设备名称</string>
+    <string name="time">时间</string>
+    <string name="location">位置</string>
+    <string name="lens_info">镜头等效焦距</string>
+    <string name="label_account">账户</string>
+    <string name="sign_in_description">使用Google登录以解锁许可功能</string>
+    <string name="btn_sign_in_google">使用Google登录</string>
+    <string name="btn_sign_out">退出登录</string>
+    <string name="label_pro">许可</string>
+    <string name="pro_brand_locked">许可功能: 登录以解锁此品牌</string>
+    <string name="pro_watermark_locked">许可功能: 登录以解锁水印</string>
+    <string name="pro_quality_limit">许可功能: 超过60%的质量需要许可</string>
 </resources>

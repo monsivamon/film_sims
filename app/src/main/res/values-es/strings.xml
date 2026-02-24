@@ -90,4 +90,22 @@
     <!-- Pro Licenses -->
     <string name="label_license_permanent">Licencia Permanente</string>
     <string name="label_license_version_mismatch">¡Su licencia está limitada a la versión %1$s!</string>
+
+    <!-- Translated UI additions -->
+    <string name="adjustments">Ajustes</string>
+    <string name="grain">Grano</string>
+    <string name="watermark">Marca de agua</string>
+    <string name="watermark_select_brand">Seleccione una marca para ver estilos de marcas de agua</string>
+    <string name="device_name">Nombre del dispositivo</string>
+    <string name="time">Hora</string>
+    <string name="location">Ubicación</string>
+    <string name="lens_info">Información de la lente</string>
+    <string name="label_account">Cuenta</string>
+    <string name="sign_in_description">Inicie sesión con Google para desbloquear funciones con Licencia</string>
+    <string name="btn_sign_in_google">Iniciar sesión con Google</string>
+    <string name="btn_sign_out">Cerrar sesión</string>
+    <string name="label_pro">LICENCIA</string>
+    <string name="pro_brand_locked">Función de licencia: Inicie sesión para desbloquear esta marca</string>
+    <string name="pro_watermark_locked">Función de licencia: Inicie sesión para desbloquear marcas de agua</string>
+    <string name="pro_quality_limit">Función de licencia: Una calidad superior al 60% requiere una Licencia</string>
 </resources>

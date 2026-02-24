@@ -176,4 +176,22 @@
     <!-- Pro Licenses -->
     <string name="label_license_permanent">永続ライセンス</string>
     <string name="label_license_version_mismatch">あなたのライセンスは%1$s限定です！</string>
+
+    <!-- Translated UI additions -->
+    <string name="adjustments">調整</string>
+    <string name="grain">エフェクト</string>
+    <string name="watermark">透かし</string>
+    <string name="watermark_select_brand">ブランドを選択して透かしスタイルを表示</string>
+    <string name="device_name">デバイス名</string>
+    <string name="time">撮影日時</string>
+    <string name="location">場所</string>
+    <string name="lens_info">レンズ情報</string>
+    <string name="label_account">アカウント</string>
+    <string name="sign_in_description">Googleでログインしてライセンス機能を有効化</string>
+    <string name="btn_sign_in_google">Googleでログイン</string>
+    <string name="btn_sign_out">ログアウト</string>
+    <string name="label_pro">ライセンス</string>
+    <string name="pro_brand_locked">ライセンス機能: ログインしてこのブランドを有効化</string>
+    <string name="pro_watermark_locked">ライセンス機能: ログインして透かしを有効化</string>
+    <string name="pro_quality_limit">ライセンス機能: 60%以上の画質で保存するにはライセンスが必要です</string>
 </resources>

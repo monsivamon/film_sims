@@ -287,15 +287,15 @@
 
     <!-- Account / Auth -->
     <string name="label_account">Account</string>
-    <string name="sign_in_description">Sign in with Google to unlock Pro features</string>
+    <string name="sign_in_description">Sign in with Google to unlock License features</string>
     <string name="btn_sign_in_google">Sign in with Google</string>
     <string name="btn_sign_out">Sign Out</string>
-    <string name="label_pro">PRO</string>
+    <string name="label_pro">LICENSE</string>
 
     <!-- Pro restrictions -->
-    <string name="pro_brand_locked">Pro feature: Sign in to unlock this brand</string>
-    <string name="pro_watermark_locked">Pro feature: Sign in to unlock watermarks</string>
-    <string name="pro_quality_limit">Pro feature: Quality above 60% requires Pro</string>
+    <string name="pro_brand_locked">License feature: Sign in to unlock this brand</string>
+    <string name="pro_watermark_locked">License feature: Sign in to unlock watermarks</string>
+    <string name="pro_quality_limit">License feature: Quality above 60% requires License</string>
     <!-- Pro Licenses -->
     <string name="label_license_permanent">Permanent License</string>
     <string name="label_license_version_mismatch">Your license is limited to version %1$s!</string>
