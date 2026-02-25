@@ -1,10 +1,12 @@
 package com.tqmane.filmsim.ui
 
+import android.animation.ValueAnimator
 import android.graphics.Matrix
 import android.opengl.GLSurfaceView
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
+import android.view.animation.DecelerateInterpolator
 import com.tqmane.filmsim.gl.FilmSimRenderer
 
 /**
@@ -27,6 +29,9 @@ class GlTouchHandler(
     private var initialOffsetY = 0f
     private var initialZoom = 1f
 
+    // Smooth animation for reset
+    private var resetAnimator: ValueAnimator? = null
+
     private val scaleDetector = ScaleGestureDetector(glSurfaceView.context,
         object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
             private var prevFX = 0f; private var prevFY = 0f
@@ -48,7 +53,7 @@ class GlTouchHandler(
 
     private val gestureDetector = GestureDetector(glSurfaceView.context,
         object : GestureDetector.SimpleOnGestureListener() {
-            override fun onDoubleTap(e: MotionEvent): Boolean { resetZoom(); return true }
+            override fun onDoubleTap(e: MotionEvent): Boolean { animateToReset(); return true }
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean { onSingleTap(); return true }
             override fun onLongPress(e: MotionEvent) { onLongPressStart() }
         })
@@ -73,7 +78,46 @@ class GlTouchHandler(
         }
     }
 
+    /**
+     * Animate smoothly to the reset position (initial zoom + offset).
+     * Uses a 400ms decelerate animation for a polished feel.
+     */
+    private fun animateToReset() {
+        resetAnimator?.cancel()
+
+        // Capture current state
+        matrix.getValues(vals)
+        val fromScale = vals[Matrix.MSCALE_X]
+        val fromTx = vals[Matrix.MTRANS_X]
+        val fromTy = vals[Matrix.MTRANS_Y]
+
+        // Calculate target state
+        val w = glSurfaceView.width.toFloat()
+        val h = glSurfaceView.height.toFloat()
+        val targetScale = initialZoom
+        val targetTx = if (w > 0f) w / 2f * (1f - targetScale) else 0f
+        val targetTy = if (h > 0f) h / 2f * (1f - targetScale) + initialOffsetY else initialOffsetY
+
+        resetAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 400
+            interpolator = DecelerateInterpolator(2f)
+            addUpdateListener { animator ->
+                val t = animator.animatedValue as Float
+
+                val curScale = fromScale + (targetScale - fromScale) * t
+                val curTx = fromTx + (targetTx - fromTx) * t
+                val curTy = fromTy + (targetTy - fromTy) * t
+
+                matrix.setScale(curScale, curScale)
+                matrix.postTranslate(curTx, curTy)
+                applyTransform()
+            }
+            start()
+        }
+    }
+
     fun resetZoom() {
+        resetAnimator?.cancel()
         matrix.reset()
         val w = glSurfaceView.width.toFloat()
         val h = glSurfaceView.height.toFloat()
@@ -108,8 +152,9 @@ class GlTouchHandler(
         val baseScreenHeightOccupied = viewH * shaderScaleY
 
         // We want the occupied height to match availableH exactly
+        // Cap at 0.95 to leave visual breathing room around the image
         initialZoom = if (baseScreenHeightOccupied > availableH) {
-            availableH / baseScreenHeightOccupied
+            (availableH / baseScreenHeightOccupied).coerceAtMost(0.95f)
         } else {
             1f
         }
@@ -119,6 +164,27 @@ class GlTouchHandler(
         val screenCenterY = viewH / 2f
         initialOffsetY = availableCenterY - screenCenterY
         resetZoom()
+    }
+
+    /**
+     * Re-center the preview when immersive mode changes.
+     * Smoothly adjusts offset to account for changed top/bottom UI heights.
+     */
+    fun updateForImmersiveChange(topBarH: Float, panelH: Float) {
+        val viewW = glSurfaceView.width.toFloat()
+        val viewH = glSurfaceView.height.toFloat()
+        if (viewW <= 0f || viewH <= 0f) return
+
+        val availableH = kotlin.math.max(viewH - topBarH - panelH, viewH * 0.1f)
+        val availableCenterY = topBarH + availableH / 2f
+        val screenCenterY = viewH / 2f
+        val newOffsetY = availableCenterY - screenCenterY
+
+        // Only animate if offset actually changed
+        if (kotlin.math.abs(newOffsetY - initialOffsetY) > 1f) {
+            initialOffsetY = newOffsetY
+            animateToReset()
+        }
     }
 
     private fun applyTransform() {

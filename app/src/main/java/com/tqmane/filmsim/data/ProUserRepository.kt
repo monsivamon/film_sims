@@ -99,9 +99,9 @@ class ProUserRepository @Inject constructor(
 
             Log.d(TAG, "Query result: found=$found, mismatchVersion=$mismatchVersion, docCount=${querySnap.size()}")
             
-            // SECURITY CHECK: Verify app signature before enabling Pro features
-            if (found && !SecurityManager.verifySignature(context)) {
-                Log.e(TAG, "Signature verification failed! Denying Pro access.")
+            // SECURITY CHECK: Verify app environment integrity before enabling Pro features
+            if (found && !SecurityManager.isEnvironmentTrusted(context)) {
+                Log.e(TAG, "Environment trust check failed! Denying Pro access.")
                 found = false
             }
             

@@ -223,6 +223,15 @@ fun MainScreen(
             }
         }
 
+        // 7. Immersive切替時のプレビュー位置再調整
+        LaunchedEffect(isImmersive) {
+            if (viewState is ViewState.Content && initialOffsetApplied) {
+                val effectiveTopBar = if (isImmersive) 0f else topBarHeightPx
+                val effectiveBottomPanel = if (isImmersive) 0f else bottomPanelHeightPx
+                touchHandler?.updateForImmersiveChange(effectiveTopBar, effectiveBottomPanel)
+            }
+        }
+
         // ─── Root Frame with Living Background ───────────────────────────────
         Box(modifier = Modifier.fillMaxSize()) {
             // Living Background (aurora + noise)

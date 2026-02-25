@@ -147,7 +147,7 @@ class MainViewModel @Inject constructor(
     // ─── LUT application ────────────────────────────────
 
     fun applyLut(lutItem: LutItem) {
-        if (!com.tqmane.filmsim.util.SecurityManager.verifySignature(context)) return
+        if (!com.tqmane.filmsim.util.SecurityManager.isEnvironmentTrusted(context)) return
 
         val path = lutItem.assetPath
         _editState.value = _editState.value.copy(currentLutPath = path, hasSelectedLut = true)
@@ -265,7 +265,7 @@ class MainViewModel @Inject constructor(
         val edit = _editState.value
         val wm = _watermarkState.value
 
-        if (!com.tqmane.filmsim.util.SecurityManager.verifySignature(context)) {
+        if (!com.tqmane.filmsim.util.SecurityManager.isEnvironmentTrusted(context)) {
             viewModelScope.launch {
                 _uiEvent.emit(UiEvent.ShowToast(R.string.lut_load_failed))
             }

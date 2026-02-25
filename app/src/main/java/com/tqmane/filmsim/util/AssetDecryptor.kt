@@ -3,17 +3,20 @@ package com.tqmane.filmsim.util
 import com.tqmane.filmsim.BuildConfig
 import java.io.InputStream
 import java.security.MessageDigest
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 object AssetDecryptor {
 
     private val masterKey: String = BuildConfig.ASSET_KEY
 
     /**
-     * Wrap an InputStream with an RC4 decryption layer on the fly.
+     * Wrap an InputStream with an AES-256-CTR decryption layer on the fly.
      *
-     * Format: [8-byte salt][encrypted payload]
+     * Format: [16-byte IV][AES-CTR encrypted payload]
      *
-     * Key derivation: SHA-256(masterKey || salt)
+     * Key derivation: SHA-256(masterKey || IV)
      * This must match the scheme used when the .enc assets were produced.
      * Changing this requires re-encrypting every asset file.
      */
@@ -22,49 +25,42 @@ object AssetDecryptor {
             return inputStream
         }
 
-        // Read 8-byte salt
-        val salt = ByteArray(8)
+        // Read 16-byte IV
+        val iv = ByteArray(16)
         var bytesRead = 0
-        while (bytesRead < 8) {
-            val read = inputStream.read(salt, bytesRead, 8 - bytesRead)
+        while (bytesRead < 16) {
+            val read = inputStream.read(iv, bytesRead, 16 - bytesRead)
             if (read == -1) break
             bytesRead += read
         }
 
-        if (bytesRead < 8) return inputStream // File too small — not a valid encrypted asset
+        if (bytesRead < 16) return inputStream // File too small — not a valid encrypted asset
 
-        // Derive 32-byte key: SHA-256(masterKey || salt)
-        val fileKey = deriveKey(masterKey, salt)
+        // Derive 32-byte key: SHA-256(masterKeyBytes || IV)
+        val fileKey = deriveKey(masterKey, iv)
 
-        // Initialize RC4 KSA
-        val sBox = IntArray(256) { it }
-        var j = 0
-        for (i in 0 until 256) {
-            j = (j + sBox[i] + (fileKey[i % fileKey.size].toInt() and 0xFF)) and 0xFF
-            val temp = sBox[i]; sBox[i] = sBox[j]; sBox[j] = temp
-        }
+        // Initialize AES-256-CTR cipher
+        val cipher = Cipher.getInstance("AES/CTR/NoPadding")
+        val keySpec = SecretKeySpec(fileKey, "AES")
+        val ivSpec = IvParameterSpec(iv)
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec)
 
         return object : InputStream() {
-            private var iState = 0
-            private var jState = 0
+            // Internal buffer for single-byte reads
+            private val singleByte = ByteArray(1)
 
             override fun read(): Int {
-                val b = inputStream.read()
-                if (b == -1) return -1
-                iState = (iState + 1) and 0xFF
-                jState = (jState + sBox[iState]) and 0xFF
-                val temp = sBox[iState]; sBox[iState] = sBox[jState]; sBox[jState] = temp
-                return b xor sBox[(sBox[iState] + sBox[jState]) and 0xFF]
+                val n = read(singleByte, 0, 1)
+                return if (n == -1) -1 else (singleByte[0].toInt() and 0xFF)
             }
 
             override fun read(b: ByteArray, off: Int, len: Int): Int {
                 val readLen = inputStream.read(b, off, len)
                 if (readLen <= 0) return readLen
-                for (offset in 0 until readLen) {
-                    iState = (iState + 1) and 0xFF
-                    jState = (jState + sBox[iState]) and 0xFF
-                    val temp = sBox[iState]; sBox[iState] = sBox[jState]; sBox[jState] = temp
-                    b[off + offset] = (b[off + offset].toInt() xor sBox[(sBox[iState] + sBox[jState]) and 0xFF]).toByte()
+                // Decrypt in-place
+                val decrypted = cipher.update(b, off, readLen)
+                if (decrypted != null) {
+                    System.arraycopy(decrypted, 0, b, off, decrypted.size)
                 }
                 return readLen
             }
@@ -74,16 +70,15 @@ object AssetDecryptor {
     }
 
     /**
-     * Derive a 32-byte key from the master key and per-file salt.
-     * Algorithm: SHA-256(masterKeyBytes || salt)
+     * Derive a 32-byte key from the master key and per-file IV.
+     * Algorithm: SHA-256(masterKeyBytes || IV)
      *
      * WARNING: Do not change this algorithm without also re-encrypting all .enc assets.
      */
-    private fun deriveKey(masterKey: String, salt: ByteArray): ByteArray {
+    private fun deriveKey(masterKey: String, iv: ByteArray): ByteArray {
         val md = MessageDigest.getInstance("SHA-256")
         md.update(masterKey.toByteArray(Charsets.UTF_8))
-        md.update(salt)
+        md.update(iv)
         return md.digest()
     }
 }
-

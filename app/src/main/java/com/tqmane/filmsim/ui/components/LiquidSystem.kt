@@ -859,7 +859,28 @@ fun LiquidPlaceholderContent(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    
+
+    // Breathing animation for placeholder icon
+    val infiniteTransition = rememberInfiniteTransition(label = "placeholder_breath")
+    val breathScale by infiniteTransition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "breath_scale"
+    )
+    val breathAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "breath_alpha"
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -871,6 +892,8 @@ fun LiquidPlaceholderContent(
         Box(
             modifier = Modifier
                 .size(100.dp)
+                .scale(breathScale)
+                .alpha(breathAlpha)
                 .clip(RoundedCornerShape(20.dp))
                 .background(LiquidColors.GlassSurface)
                 .padding(24.dp),

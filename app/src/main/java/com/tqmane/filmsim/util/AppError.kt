@@ -33,3 +33,30 @@ sealed class AppError {
         override val cause: Throwable? = null
     ) : AppError()
 }
+
+/**
+ * Maps common exceptions to the appropriate [AppError] subtype.
+ * Used as a default mapper for error handling pipelines.
+ */
+fun defaultErrorMapper(throwable: Throwable): AppError = when (throwable) {
+    is java.io.IOException -> AppError.NetworkError(
+        userMessage = "Network error",
+        logMessage = throwable.message ?: "IOException",
+        cause = throwable
+    )
+    is OutOfMemoryError -> AppError.MemoryError(
+        userMessage = "Out of memory",
+        logMessage = throwable.message ?: "OOM",
+        cause = throwable
+    )
+    is SecurityException -> AppError.StorageError(
+        userMessage = "Permission denied",
+        logMessage = throwable.message ?: "SecurityException",
+        cause = throwable
+    )
+    else -> AppError.ProcessingError(
+        userMessage = "An error occurred",
+        logMessage = throwable.message ?: throwable.javaClass.simpleName,
+        cause = throwable
+    )
+}
