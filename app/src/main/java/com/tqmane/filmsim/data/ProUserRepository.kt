@@ -42,9 +42,6 @@ class ProUserRepository @Inject constructor(
 
     private val firestore = FirebaseFirestore.getInstance(com.google.firebase.FirebaseApp.getInstance(), "login")
 
-    private val _isPending = MutableStateFlow(false)
-    val isPending: StateFlow<Boolean> = _isPending.asStateFlow()
-
     private val _isProUser = MutableStateFlow(false)
     val isProUser: StateFlow<Boolean> = _isProUser.asStateFlow()
 
@@ -64,10 +61,8 @@ class ProUserRepository @Inject constructor(
             _isProUser.value = false
             _licenseMismatchVersion.value = null
             _isPermanentLicense.value = false
-            _isPending.value = false
             return
         }
-        _isPending.value = true
         val normalizedEmail = email.trim().lowercase()
         Log.d(TAG, "Querying pro_users where email == '$normalizedEmail'")
         try {
@@ -120,7 +115,6 @@ class ProUserRepository @Inject constructor(
             _licenseMismatchVersion.value = null
             _isPermanentLicense.value = false
         } finally {
-            _isPending.value = false
             Log.d(TAG, "Final isProUser=${_isProUser.value}, mismatchVersion=${_licenseMismatchVersion.value}")
         }
     }
@@ -129,6 +123,5 @@ class ProUserRepository @Inject constructor(
         _isProUser.value = false
         _licenseMismatchVersion.value = null
         _isPermanentLicense.value = false
-        _isPending.value = false
     }
 }

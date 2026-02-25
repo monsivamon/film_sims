@@ -17,9 +17,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +42,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -70,7 +68,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -89,7 +86,7 @@ import com.tqmane.filmsim.ui.theme.LiquidDimensions
 import com.tqmane.filmsim.util.CubeLUTParser
 import com.tqmane.filmsim.util.LutBitmapProcessor
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LIVING BACKGROUND - Aurora Mesh Gradient with Noise
@@ -313,100 +310,11 @@ private fun generateNoiseBitmap(width: Int, height: Int): Bitmap {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LIQUID SLIDER - With metaball effect and water drop thumb
+// LIQUID INTENSITY SLIDER - Enhanced slider with label and percentage display
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Liquid-style slider with organic track deformation and water drop thumb.
- * Features metaball-like attraction effect towards touch position.
- */
-@Composable
-fun LiquidSlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    onValueChangeFinished: (() -> Unit)? = null
-) {
-    val haptic = LocalHapticFeedback.current
-    var isDragging by remember { mutableStateOf(false) }
-    var trackWidth by remember { mutableFloatStateOf(0f) }
-
-    val thumbScale by animateFloatAsState(
-        targetValue = if (isDragging) 1.2f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "thumb_scale"
-    )
-
-    fun offsetToValue(xPx: Float): Float {
-        if (trackWidth <= 0f) return value
-        val ratio = (xPx / trackWidth).coerceIn(0f, 1f)
-        return valueRange.start + ratio * (valueRange.endInclusive - valueRange.start)
-    }
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .pointerInput(enabled, valueRange) {
-                if (!enabled) return@pointerInput
-                trackWidth = size.width.toFloat()
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    isDragging = true
-                    haptic.performHapticFeedback(
-                        androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
-                    )
-                    onValueChange(offsetToValue(down.position.x))
-                    var pointer = down
-                    while (pointer.pressed) {
-                        val event = awaitPointerEvent()
-                        pointer = event.changes.firstOrNull { it.id == down.id } ?: break
-                        if (pointer.pressed) {
-                            pointer.consume()
-                            onValueChange(offsetToValue(pointer.position.x))
-                        }
-                    }
-                    isDragging = false
-                    onValueChangeFinished?.invoke()
-                }
-            },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-        ) {
-            // Track background
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(LiquidColors.GlassSurfaceDark)
-            )
-
-            // Active track with liquid deformation
-            val progress = (value - valueRange.start) / (valueRange.endInclusive - valueRange.start)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(progress.coerceIn(0f, 1f))
-                    .fillMaxHeight()
-                    .background(
-                        LiquidColors.AccentPrimary,
-                        RoundedCornerShape(3.dp)
-                    )
-            )
-        }
-    }
-}
-
-/**
- * Enhanced intensity slider with label and percentage display
+ * Styled intensity slider with label, icon, and percentage readout.
  */
 @Composable
 fun LiquidIntensitySlider(
@@ -670,17 +578,28 @@ fun LiquidLutCard(
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
-    
-    // Generate LUT preview (blocking call for simplicity)
-    val previewBitmap = remember(item.assetPath, thumbnailBitmap) {
+
+    // Async LUT preview — avoids blocking the Compose render thread
+    var previewBitmap by remember(item.assetPath, thumbnailBitmap) {
+        mutableStateOf<Bitmap?>(null)
+    }
+    var isLoadingPreview by remember(item.assetPath, thumbnailBitmap) {
+        mutableStateOf(thumbnailBitmap != null)
+    }
+    LaunchedEffect(item.assetPath, thumbnailBitmap) {
         if (thumbnailBitmap != null) {
-            try {
-                val lut = runBlocking(Dispatchers.IO) { CubeLUTParser.parse(context, item.assetPath) }
-                if (lut != null) {
-                    runBlocking(Dispatchers.IO) { LutBitmapProcessor.applyLutToBitmap(thumbnailBitmap, lut) }
-                } else null
-            } catch (e: Exception) { null }
-        } else null
+            isLoadingPreview = true
+            previewBitmap = withContext(Dispatchers.IO) {
+                try {
+                    val lut = CubeLUTParser.parse(context, item.assetPath)
+                    if (lut != null) LutBitmapProcessor.applyLutToBitmap(thumbnailBitmap, lut) else null
+                } catch (e: Exception) { null }
+            }
+            isLoadingPreview = false
+        } else {
+            previewBitmap = null
+            isLoadingPreview = false
+        }
     }
     
     val borderColor by animateColorAsState(
@@ -715,7 +634,7 @@ fun LiquidLutCard(
         ) {
             if (previewBitmap != null) {
                 Image(
-                    bitmap = previewBitmap.asImageBitmap(),
+                    bitmap = previewBitmap!!.asImageBitmap(),
                     contentDescription = item.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -728,6 +647,25 @@ fun LiquidLutCard(
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(0.5f)
+                )
+            }
+
+            // Shimmer overlay while LUT preview is being generated
+            if (isLoadingPreview) {
+                val shimmerTransition = rememberInfiniteTransition(label = "shimmer")
+                val shimmerAlpha by shimmerTransition.animateFloat(
+                    initialValue = 0.15f,
+                    targetValue = 0.35f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(700, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "shimmer_alpha"
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(LiquidColors.GlassSurface.copy(alpha = shimmerAlpha))
                 )
             }
             
@@ -864,12 +802,25 @@ fun GlassBottomSheet(
             .clip(RoundedCornerShape(topStart = topRadius, topEnd = topRadius))
             .background(LiquidColors.SurfaceDark.copy(alpha = 0.87f))
             .clickable(
-                indication = null, 
+                indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             ) {}
-            .padding(top = 16.dp, bottom = 20.dp, start = 16.dp, end = 16.dp),
-        content = content
-    )
+            .padding(top = 8.dp, bottom = 20.dp, start = 16.dp, end = 16.dp)
+    ) {
+        // Drag handle
+        if (!squareTop) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 12.dp)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(LiquidColors.TextDisabled.copy(alpha = 0.5f))
+            )
+        }
+        content()
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -999,7 +950,7 @@ fun LiquidTopBar(
 ) {
     val haptic = LocalHapticFeedback.current
     
-    Box(modifier = modifier.padding(horizontal = 24.dp, vertical = 24.dp)) {
+    Box(modifier = modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically

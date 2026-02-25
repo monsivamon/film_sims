@@ -5,7 +5,6 @@ import android.opengl.GLSurfaceView
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
-import android.widget.ImageView
 import com.tqmane.filmsim.gl.FilmSimRenderer
 
 /**
@@ -120,13 +119,6 @@ class GlTouchHandler(
         val screenCenterY = viewH / 2f
         initialOffsetY = availableCenterY - screenCenterY
         resetZoom()
-    }
-
-    fun syncWatermarkPreview(view: ImageView) {
-        if (view.visibility != android.view.View.VISIBLE) return
-        matrix.getValues(vals)
-        view.scaleX = vals[Matrix.MSCALE_X]; view.scaleY = vals[Matrix.MSCALE_X]
-        view.translationX = vals[Matrix.MTRANS_X]; view.translationY = vals[Matrix.MTRANS_Y]
     }
 
     private fun applyTransform() {

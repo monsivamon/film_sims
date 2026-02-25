@@ -494,22 +494,4 @@ object LutRepository {
         ))
     }
     
-    // Legacy support
-    fun getLutGenres(context: Context): List<LutGenre> {
-        val brands = getLutBrands(context)
-        return brands.flatMap { brand ->
-            brand.categories.map { category ->
-                LutGenre(
-                    name = "${brand.displayName} - ${category.displayName}",
-                    items = category.items
-                )
-            }
-        }
-    }
 }
-
-// Legacy data class for compatibility
-data class LutGenre(
-    val name: String,
-    val items: List<LutItem>
-)

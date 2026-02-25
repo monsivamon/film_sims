@@ -6,29 +6,34 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Base64
 import android.util.Log
+import com.tqmane.filmsim.BuildConfig
 import java.security.MessageDigest
 
 object SecurityManager {
     private const val TAG = "SecurityManager"
 
-    // Valid signature hashes (SHA-256 Base64 encoded)
-    private val EXPECTED_SIGNATURE_HASHES = listOf(
-        "07D6Pj199ET0XVf2+Ui/ZB+veLHMPph1mLzMWSAeW/w=", // For Release
-        "xgnLChOLC3w983F5Z95nUeMKO14IhATfWBy4tl69ZvM="  // For Debug
-    )
+    // Release signing hash (SHA-256 Base64 encoded).
+    // The debug hash is intentionally excluded from the release binary to reduce
+    // the information surface available to reverse engineers.
+    private val RELEASE_SIGNATURE_HASH = "07D6Pj199ET0XVf2+Ui/ZB+veLHMPph1mLzMWSAeW/w="
+
+    // Debug-only hash — only compiled into debug builds.
+    private val DEBUG_SIGNATURE_HASH = if (BuildConfig.DEBUG) {
+        "xgnLChOLC3w983F5Z95nUeMKO14IhATfWBy4tl69ZvM="
+    } else {
+        null
+    }
 
     /**
      * Verifies if the application's signature matches the expected official developer signature.
-     * In DEBUG builds, it logs the current hash to help the developer configure it, and always returns true.
-     * In RELEASE builds, it enforces the check.
+     * In DEBUG builds, logs the current hash to help configure it and always returns true.
+     * In RELEASE builds, enforces the check strictly — FLAG_DEBUGGABLE alone does not bypass it.
      *
-     * @return true if the signature is valid or if running in debug mode. false if tampered.
+     * @return true if the signature matches a known valid hash. false if tampered.
      */
     @SuppressLint("PackageManagerGetSignatures")
     fun verifySignature(context: Context): Boolean {
-        // Automatically allow debug builds to prevent development blocks,
-        // but enforce on release builds.
-        val isDebuggable = (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val isDebugBuild = BuildConfig.DEBUG
 
         try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -53,29 +58,29 @@ object SecurityManager {
 
             if (signatures.isNullOrEmpty()) {
                 Log.e(TAG, "No signatures found!")
-                return isDebuggable
+                return isDebugBuild
             }
 
             for (signature in signatures) {
                 val md = MessageDigest.getInstance("SHA-256")
                 md.update(signature.toByteArray())
-                val currentSignatureHash = Base64.encodeToString(md.digest(), Base64.NO_WRAP)
-                
-                if (isDebuggable) {
-                    Log.d(TAG, "Current App Signature Hash (SHA-256 Base64): $currentSignatureHash")
+                val currentHash = Base64.encodeToString(md.digest(), Base64.NO_WRAP)
+
+                if (isDebugBuild) {
+                    Log.d(TAG, "Current App Signature Hash (SHA-256 Base64): $currentHash")
                 }
 
-                if (EXPECTED_SIGNATURE_HASHES.contains(currentSignatureHash)) {
-                    return true
-                }
+                if (currentHash == RELEASE_SIGNATURE_HASH) return true
+                if (isDebugBuild && currentHash == DEBUG_SIGNATURE_HASH) return true
             }
-            
+
             Log.e(TAG, "Signature verification failed! The app might be modified.")
-            return isDebuggable
+            // In release builds, never fall back to returning true on failure.
+            return isDebugBuild
 
         } catch (e: Exception) {
             Log.e(TAG, "Error generating signature hash", e)
-            return isDebuggable
+            return isDebugBuild
         }
     }
 }
