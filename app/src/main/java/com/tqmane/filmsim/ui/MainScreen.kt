@@ -1,6 +1,8 @@
 package com.tqmane.filmsim.ui
 
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.opengl.GLSurfaceView
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -55,8 +57,8 @@ fun MainScreen(
     viewModel: MainViewModel,
     authViewModel: AuthViewModel,
     onPickImage: () -> Unit,
-    onShowSettings: () -> Unit,
-    onShowUpdateDialog: (com.tqmane.filmsim.util.ReleaseInfo) -> Unit
+    onSignIn: () -> Unit = {},
+    onSignOut: () -> Unit = {}
 ) {
     LiquidTheme {
         val context = LocalContext.current
@@ -77,6 +79,9 @@ fun MainScreen(
         // UI toggles
         var isImmersive by rememberSaveable { mutableStateOf(false) }
         var showAdjustPanel by rememberSaveable { mutableStateOf(false) }
+        // Dialog state
+        var showSettings by rememberSaveable { mutableStateOf(false) }
+        var pendingUpdate by remember { mutableStateOf<com.tqmane.filmsim.util.ReleaseInfo?>(null) }
 
         val selectedBrandIndex by viewModel.selectedBrandIndex.collectAsState()
         val selectedCategoryIndex by viewModel.selectedCategoryIndex.collectAsState()
@@ -101,7 +106,7 @@ fun MainScreen(
                     }
                     is UiEvent.ShowRawToast ->
                         Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
-                    is UiEvent.ShowUpdateDialog -> onShowUpdateDialog(event.release)
+                    is UiEvent.ShowUpdateDialog -> pendingUpdate = event.release
                     is UiEvent.ImageSaved -> {
                         val msg = context.getString(
                             R.string.image_saved,
@@ -340,7 +345,7 @@ fun MainScreen(
                 ) {
                     LiquidTopBar(
                         onPickImage = onPickImage,
-                        onSettings = onShowSettings,
+                        onSettings = { showSettings = true },
                         onSave = {
                             val gl = glExecutor
                             if (viewState !is ViewState.Content) {
@@ -414,6 +419,30 @@ fun MainScreen(
                     }
                 }
             }
+        }
+
+        // ─── Compose Dialogs ──────────────────────────────────────────────────
+        if (showSettings) {
+            SettingsDialog(
+                viewModel = viewModel,
+                authViewModel = authViewModel,
+                onSignIn = onSignIn,
+                onSignOut = onSignOut,
+                onDismiss = { showSettings = false }
+            )
+        }
+
+        pendingUpdate?.let { release ->
+            UpdateDialog(
+                release = release,
+                onDismiss = { pendingUpdate = null },
+                onUpdate = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(release.htmlUrl))
+                    )
+                    pendingUpdate = null
+                }
+            )
         }
 
         // Cleanup

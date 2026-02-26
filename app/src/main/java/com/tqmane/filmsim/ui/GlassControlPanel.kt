@@ -24,8 +24,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -321,8 +321,15 @@ fun LiquidAdjustPanel(
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-            .background(LiquidColors.SurfaceDark.copy(alpha = 0.87f))
+            .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        LiquidColors.SurfaceMedium.copy(alpha = 0.95f),
+                        LiquidColors.SurfaceDark.copy(alpha = 0.97f)
+                    )
+                )
+            )
             .clickable(
                 indication = null, 
                 interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
@@ -404,22 +411,21 @@ private fun LiquidTabBar(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(LiquidColors.GlassSurfaceDark)
+            .background(Color(0x16FFFFFF))
+            .border(1.dp, Color(0x16FFFFFF), RoundedCornerShape(20.dp))
             .padding(3.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         tabs.forEach { (tab, labelRes) ->
             val isSelected = selectedTab == tab
-            val bgColor by animateColorAsState(
-                targetValue = if (isSelected) LiquidColors.AccentPrimary.copy(alpha = 0.25f)
-                else Color.Transparent,
-                animationSpec = tween(200),
+            val bgAlpha by animateColorAsState(
+                targetValue = if (isSelected) Color(0xFFFFAB60) else Color.Transparent,
+                animationSpec = tween(250),
                 label = "tab_bg"
             )
             val textColor by animateColorAsState(
-                targetValue = if (isSelected) LiquidColors.AccentPrimary
-                else LiquidColors.TextLowEmphasis,
-                animationSpec = tween(200),
+                targetValue = if (isSelected) Color(0xFF0C0C10) else LiquidColors.TextLowEmphasis,
+                animationSpec = tween(250),
                 label = "tab_text"
             )
 
@@ -427,14 +433,14 @@ private fun LiquidTabBar(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(bgColor)
+                    .background(bgAlpha)
                     .clickable {
                         haptic.performHapticFeedback(
                             androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
                         )
                         onTabSelected(tab)
                     }
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center
             ) {
                 val label = stringResource(labelRes)
@@ -443,9 +449,9 @@ private fun LiquidTabBar(
                     displayLabel,
                     color = textColor,
                     fontSize = 12.sp,
-                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                     fontFamily = FontFamily.SansSerif,
-                    letterSpacing = 0.02.sp
+                    letterSpacing = 0.01.sp
                 )
             }
         }
@@ -498,7 +504,7 @@ private fun LiquidGrainControls(
             textAlign = TextAlign.End,
             modifier = Modifier.width(42.dp).padding(end = 8.dp)
         )
-        Checkbox(
+        Switch(
             checked = grainEnabled,
             onCheckedChange = { on ->
                 grainEnabled = on
@@ -513,8 +519,13 @@ private fun LiquidGrainControls(
                 }
                 onRefreshWatermark()
             },
-            colors = CheckboxDefaults.colors(checkedColor = LiquidColors.AccentPrimary),
-            modifier = Modifier.size(24.dp)
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color(0xFF0C0C10),
+                checkedTrackColor = LiquidColors.AccentPrimary,
+                uncheckedThumbColor = LiquidColors.TextLowEmphasis,
+                uncheckedTrackColor = Color(0x22FFFFFF),
+                uncheckedBorderColor = Color(0x30FFFFFF)
+            )
         )
     }
 
@@ -737,7 +748,9 @@ private fun LiquidWatermarkInputRow(
     onValueChange: (String) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 30.dp, top = 4.dp, bottom = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 30.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -747,14 +760,18 @@ private fun LiquidWatermarkInputRow(
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             fontFamily = FontFamily.SansSerif,
-            modifier = Modifier.weight(0.25f).padding(end = 8.dp)
+            modifier = Modifier
+                .weight(0.25f)
+                .padding(end = 8.dp)
         )
         Box(
-            modifier = Modifier.weight(0.75f).height(34.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(LiquidColors.GlassSurfaceDark)
-                .border(1.dp, LiquidColors.GlassBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 8.dp),
+            modifier = Modifier
+                .weight(0.75f)
+                .height(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0x14FFFFFF))
+                .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(10.dp))
+                .padding(horizontal = 10.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             androidx.compose.foundation.text.BasicTextField(
@@ -762,12 +779,23 @@ private fun LiquidWatermarkInputRow(
                 onValueChange = onValueChange,
                 singleLine = true,
                 textStyle = TextStyle(
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontFamily = FontFamily.SansSerif,
                     color = LiquidColors.TextHighEmphasis
                 ),
                 cursorBrush = androidx.compose.ui.graphics.SolidColor(LiquidColors.AccentPrimary),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        Text(
+                            "—",
+                            color = LiquidColors.TextDisabled,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.SansSerif
+                        )
+                    }
+                    inner()
+                }
             )
         }
     }

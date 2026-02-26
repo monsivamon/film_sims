@@ -417,6 +417,11 @@ fun LiquidButton(
                     )
                 )
             )
+            .border(
+                1.dp,
+                Color(0x25FFFFFF),
+                RoundedCornerShape(22.dp)
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -463,11 +468,11 @@ fun LiquidRoundButton(
     
     Box(
         modifier = modifier
-            .size(42.dp)
+            .size(44.dp)
             .scale(scale)
             .clip(CircleShape)
-            .background(LiquidColors.GlassSurface)
-            .border(1.dp, LiquidColors.GlassBorder, CircleShape)
+            .background(Color(0x16FFFFFF))
+            .border(1.dp, Color(0x1AFFFFFF), CircleShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -483,8 +488,8 @@ fun LiquidRoundButton(
         Icon(
             painter = painterResource(iconRes),
             contentDescription = contentDesc,
-            tint = LiquidColors.TextHighEmphasis,
-            modifier = Modifier.size(22.dp)
+            tint = LiquidColors.TextMediumEmphasis,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -786,11 +791,27 @@ fun GlassBottomSheet(
     squareTop: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val topRadius = if (squareTop) 0.dp else 20.dp
+    val topRadius = if (squareTop) 0.dp else 22.dp
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(topStart = topRadius, topEnd = topRadius))
-            .background(LiquidColors.SurfaceDark.copy(alpha = 0.87f))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        LiquidColors.SurfaceMedium.copy(alpha = 0.95f),
+                        LiquidColors.SurfaceDark.copy(alpha = 0.97f)
+                    )
+                )
+            )
+            .drawBehind {
+                // Subtle top border highlight
+                drawLine(
+                    color = Color(0x28FFFFFF),
+                    start = Offset(topRadius.toPx(), 0f),
+                    end = Offset(size.width - topRadius.toPx(), 0f),
+                    strokeWidth = 1f
+                )
+            }
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
@@ -803,10 +824,10 @@ fun GlassBottomSheet(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(bottom = 12.dp)
-                    .width(36.dp)
+                    .width(40.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(LiquidColors.TextDisabled.copy(alpha = 0.5f))
+                    .background(Color(0x40FFFFFF))
             )
         }
         content()
@@ -879,22 +900,47 @@ fun LiquidPlaceholderContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .scale(breathScale)
-                .alpha(breathAlpha)
-                .clip(RoundedCornerShape(20.dp))
-                .background(LiquidColors.GlassSurface)
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_add_photo),
-                contentDescription = null,
-                tint = LiquidColors.TextLowEmphasis,
-                modifier = Modifier.fillMaxSize()
+        // Pulsing icon with glow ring
+        Box(contentAlignment = Alignment.Center) {
+            // Outer glow ring
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .scale(breathScale)
+                    .alpha(breathAlpha * 0.4f)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(LiquidColors.AccentPrimary.copy(alpha = 0.12f))
             )
+            // Icon container
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .scale(breathScale)
+                    .alpha(breathAlpha)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0x22FFFFFF),
+                                Color(0x10FFFFFF)
+                            )
+                        )
+                    )
+                    .border(
+                        1.dp,
+                        LiquidColors.AccentPrimary.copy(alpha = breathAlpha * 0.3f),
+                        RoundedCornerShape(22.dp)
+                    )
+                    .padding(22.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_add_photo),
+                    contentDescription = null,
+                    tint = LiquidColors.AccentPrimary.copy(alpha = 0.85f),
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
         
         Text(
@@ -904,16 +950,16 @@ fun LiquidPlaceholderContent(
             fontWeight = FontWeight.Light,
             fontFamily = FontFamily.SansSerif,
             letterSpacing = 0.005.sp,
-            modifier = Modifier.padding(top = 36.dp)
+            modifier = Modifier.padding(top = 32.dp)
         )
         
         Text(
             stringResource(R.string.desc_pick_image),
             color = LiquidColors.TextLowEmphasis,
-            fontSize = 15.sp,
+            fontSize = 14.sp,
             textAlign = TextAlign.Center,
-            lineHeight = (15 * 1.5).sp,
-            modifier = Modifier.padding(top = 14.dp)
+            lineHeight = (14 * 1.6).sp,
+            modifier = Modifier.padding(top = 12.dp)
         )
         
         LiquidButton(
@@ -924,7 +970,7 @@ fun LiquidPlaceholderContent(
                 onPickImage()
             },
             modifier = Modifier
-                .padding(top = 44.dp)
+                .padding(top = 40.dp)
                 .height(56.dp)
                 .widthIn(min = 200.dp)
         ) {
@@ -932,16 +978,16 @@ fun LiquidPlaceholderContent(
                 painter = painterResource(R.drawable.ic_gallery),
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Text(
                 stringResource(R.string.btn_open_gallery),
                 color = Color.White,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.SansSerif,
-                letterSpacing = 0.015.sp
+                letterSpacing = 0.01.sp
             )
         }
     }
@@ -963,7 +1009,16 @@ fun LiquidTopBar(
 ) {
     val haptic = LocalHapticFeedback.current
     
-    Box(modifier = modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
+    Box(modifier = modifier
+        .background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    LiquidColors.SurfaceDark.copy(alpha = 0.75f),
+                    Color.Transparent
+                )
+            )
+        )
+        .padding(horizontal = 22.dp, vertical = 14.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -1009,13 +1064,20 @@ fun LiquidTopBar(
                     )
                     onSave()
                 },
-                modifier = Modifier.width(80.dp)
+                modifier = Modifier.width(88.dp)
             ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_save),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(Modifier.width(5.dp))
                 Text(
                     stringResource(R.string.save),
                     color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.SansSerif
                 )
             }
