@@ -17,8 +17,8 @@ android {
         applicationId = "com.tqmane.filmsim"
         minSdk = 26
         targetSdk = 34
-        versionCode = 14
-        versionName = "1.1.1"
+        versionCode = 15
+        versionName = "1.1.2"
 
         // Read ASSET_KEY from secrets.properties (or use a fallback for external contributors)
         val secretsFile = rootProject.file("secrets.properties")
