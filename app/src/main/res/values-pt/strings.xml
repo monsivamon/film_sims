@@ -87,4 +87,25 @@
     <string name="lut_fotos_mono_gregwilliams">Mono Greg Williams</string>
     <string name="lut_fotos_mono_selenium">Mono Selénio</string>
     <string name="lut_fotos_mono_sepia">Mono Sépia</string>
+    <!-- Pro Licenses -->
+    <string name="label_license_permanent">Licença Permanente</string>
+    <string name="label_license_version_mismatch">Sua licença é limitada à versão %1$s!</string>
+
+    <!-- Translated UI additions -->
+    <string name="adjustments">Ajustes</string>
+    <string name="grain">Grão</string>
+    <string name="watermark">Marca d\'água</string>
+    <string name="watermark_select_brand">Selecione uma marca para ver estilos de marca d\'água</string>
+    <string name="device_name">Nome do dispositivo</string>
+    <string name="time">Hora</string>
+    <string name="location">Localização</string>
+    <string name="lens_info">Informações da Lente</string>
+    <string name="label_account">Conta</string>
+    <string name="sign_in_description">Faça login com o Google para desbloquear recursos de Licença</string>
+    <string name="btn_sign_in_google">Fazer login com o Google</string>
+    <string name="btn_sign_out">Sair</string>
+    <string name="label_pro">LICENÇA</string>
+    <string name="pro_brand_locked">Recurso de licença: Faça login para desbloquear esta marca</string>
+    <string name="pro_watermark_locked">Recurso de licença: Faça login para desbloquear marcas d\'água</string>
+    <string name="pro_quality_limit">Recurso de licença: Qualidade acima de 60% requer uma Licença</string>
 </resources>

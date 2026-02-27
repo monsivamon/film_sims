@@ -2,7 +2,6 @@ package com.tqmane.filmsim.ui.components
 
 import android.graphics.Bitmap
 import android.graphics.Shader
-import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -17,9 +16,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +41,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -70,7 +67,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -89,7 +85,7 @@ import com.tqmane.filmsim.ui.theme.LiquidDimensions
 import com.tqmane.filmsim.util.CubeLUTParser
 import com.tqmane.filmsim.util.LutBitmapProcessor
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LIVING BACKGROUND - Aurora Mesh Gradient with Noise
@@ -196,7 +192,7 @@ fun LivingBackground(
     ) {
         // Noise overlay (film grain simulation)
         NoiseOverlay(
-            opacity = 0.03f,
+            opacity = 0.025f,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -216,7 +212,7 @@ private fun DrawScope.drawAuroraLights(
     
     // Amber light (top-left area)
     val amberBrush = RadialGradient(
-        colors = listOf(LiquidColors.AmbientAmber.copy(alpha = 0.15f), LiquidColors.AmbientAmber.copy(alpha = 0f)),
+        colors = listOf(LiquidColors.AmbientAmber.copy(alpha = 0.10f), LiquidColors.AmbientAmber.copy(alpha = 0f)),
         center = Offset(width * 0.2f * amberOffsetX + width * 0.1f, height * 0.3f * amberOffsetY + height * 0.1f),
         radius = (width * 0.4f) * scalePulse
     )
@@ -224,7 +220,7 @@ private fun DrawScope.drawAuroraLights(
     
     // Cyan light (bottom-right area)
     val cyanBrush = RadialGradient(
-        colors = listOf(LiquidColors.AmbientCyan.copy(alpha = 0.12f), LiquidColors.AmbientCyan.copy(alpha = 0f)),
+        colors = listOf(LiquidColors.AmbientCyan.copy(alpha = 0.08f), LiquidColors.AmbientCyan.copy(alpha = 0f)),
         center = Offset(width * 0.8f * cyanOffsetX + width * 0.1f, height * 0.7f * cyanOffsetY + height * 0.1f),
         radius = (width * 0.35f) * scalePulse
     )
@@ -232,7 +228,7 @@ private fun DrawScope.drawAuroraLights(
     
     // Purple light (center-bottom area)
     val purpleBrush = RadialGradient(
-        colors = listOf(LiquidColors.AmbientPurple.copy(alpha = 0.1f), LiquidColors.AmbientPurple.copy(alpha = 0f)),
+        colors = listOf(LiquidColors.AmbientPurple.copy(alpha = 0.06f), LiquidColors.AmbientPurple.copy(alpha = 0f)),
         center = Offset(width * 0.5f * purpleOffsetX + width * 0.3f, height * 0.8f * purpleOffsetY + height * 0.1f),
         radius = (width * 0.3f) * scalePulse
     )
@@ -313,100 +309,11 @@ private fun generateNoiseBitmap(width: Int, height: Int): Bitmap {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LIQUID SLIDER - With metaball effect and water drop thumb
+// LIQUID INTENSITY SLIDER - Enhanced slider with label and percentage display
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Liquid-style slider with organic track deformation and water drop thumb.
- * Features metaball-like attraction effect towards touch position.
- */
-@Composable
-fun LiquidSlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    onValueChangeFinished: (() -> Unit)? = null
-) {
-    val haptic = LocalHapticFeedback.current
-    var isDragging by remember { mutableStateOf(false) }
-    var trackWidth by remember { mutableFloatStateOf(0f) }
-
-    val thumbScale by animateFloatAsState(
-        targetValue = if (isDragging) 1.2f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "thumb_scale"
-    )
-
-    fun offsetToValue(xPx: Float): Float {
-        if (trackWidth <= 0f) return value
-        val ratio = (xPx / trackWidth).coerceIn(0f, 1f)
-        return valueRange.start + ratio * (valueRange.endInclusive - valueRange.start)
-    }
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .pointerInput(enabled, valueRange) {
-                if (!enabled) return@pointerInput
-                trackWidth = size.width.toFloat()
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    isDragging = true
-                    haptic.performHapticFeedback(
-                        androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
-                    )
-                    onValueChange(offsetToValue(down.position.x))
-                    var pointer = down
-                    while (pointer.pressed) {
-                        val event = awaitPointerEvent()
-                        pointer = event.changes.firstOrNull { it.id == down.id } ?: break
-                        if (pointer.pressed) {
-                            pointer.consume()
-                            onValueChange(offsetToValue(pointer.position.x))
-                        }
-                    }
-                    isDragging = false
-                    onValueChangeFinished?.invoke()
-                }
-            },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-        ) {
-            // Track background
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(LiquidColors.GlassSurfaceDark)
-            )
-
-            // Active track with liquid deformation
-            val progress = (value - valueRange.start) / (valueRange.endInclusive - valueRange.start)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(progress.coerceIn(0f, 1f))
-                    .fillMaxHeight()
-                    .background(
-                        LiquidColors.AccentPrimary,
-                        RoundedCornerShape(3.dp)
-                    )
-            )
-        }
-    }
-}
-
-/**
- * Enhanced intensity slider with label and percentage display
+ * Styled intensity slider with label, icon, and percentage readout.
  */
 @Composable
 fun LiquidIntensitySlider(
@@ -428,20 +335,20 @@ fun LiquidIntensitySlider(
                 painter = painterResource(R.drawable.ic_opacity),
                 contentDescription = null,
                 tint = LiquidColors.AccentPrimary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.width(12.dp))
             Text(
                 stringResource(R.string.label_intensity),
                 color = LiquidColors.TextMediumEmphasis,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontFamily = FontFamily.SansSerif,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 "${(sliderValue * 100).toInt()}%",
                 color = LiquidColors.AccentPrimary,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = FontFamily.SansSerif,
                 textAlign = TextAlign.End,
@@ -453,16 +360,17 @@ fun LiquidIntensitySlider(
             value = sliderValue,
             onValueChange = {
                 sliderValue = it
+                onIntensityChange(it)
                 haptic.performHapticFeedback(
                     androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
                 )
             },
-            onValueChangeFinished = { onIntensityChange(sliderValue) },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            onValueChangeFinished = { },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
             colors = SliderDefaults.colors(
                 thumbColor = LiquidColors.AccentPrimary,
                 activeTrackColor = LiquidColors.AccentPrimary,
-                inactiveTrackColor = LiquidColors.GlassSurfaceDark
+                inactiveTrackColor = Color(0x14FFFFFF)
             )
         )
     }
@@ -488,7 +396,7 @@ fun LiquidButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
+        targetValue = if (isPressed) 0.92f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow
@@ -496,20 +404,11 @@ fun LiquidButton(
         label = "button_scale"
     )
     
-    val bounceScale by animateFloatAsState(
-        targetValue = if (!isPressed && scale < 0.95f) 1.05f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "button_bounce"
-    )
-    
     Box(
         modifier = modifier
-            .scale(scale * bounceScale)
+            .scale(scale)
             .height(LiquidDimensions.ButtonHeight)
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(
                 Brush.linearGradient(
                     listOf(
@@ -517,6 +416,24 @@ fun LiquidButton(
                         LiquidColors.GradientAccentEnd
                     )
                 )
+            )
+            .drawBehind {
+                // Subtle inner shadow for depth
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.08f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.12f)
+                        )
+                    ),
+                    size = size
+                )
+            }
+            .border(
+                1.dp,
+                Color(0x25FFFFFF),
+                RoundedCornerShape(24.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -554,7 +471,7 @@ fun LiquidRoundButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1f,
+        targetValue = if (isPressed) 0.88f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow
@@ -564,11 +481,11 @@ fun LiquidRoundButton(
     
     Box(
         modifier = modifier
-            .size(42.dp)
+            .size(46.dp)
             .scale(scale)
             .clip(CircleShape)
-            .background(LiquidColors.GlassSurface)
-            .border(1.dp, LiquidColors.GlassBorder, CircleShape)
+            .background(Color(0x12FFFFFF))
+            .border(1.dp, Color(0x14FFFFFF), CircleShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -584,14 +501,14 @@ fun LiquidRoundButton(
         Icon(
             painter = painterResource(iconRes),
             contentDescription = contentDesc,
-            tint = LiquidColors.TextHighEmphasis,
-            modifier = Modifier.size(22.dp)
+            tint = LiquidColors.TextMediumEmphasis,
+            modifier = Modifier.size(21.dp)
         )
     }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LIQUID CHIP - Glass chip with selection states
+// LIQUID CHIP- Glass chip with selection states
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -614,7 +531,7 @@ fun LiquidChip(
     )
     
     val borderColor by animateColorAsState(
-        targetValue = if (selected) LiquidColors.AccentPrimaryDark else LiquidColors.GlassBorder,
+        targetValue = if (selected) LiquidColors.AccentPrimary.copy(alpha = 0.5f) else Color(0x10FFFFFF),
         animationSpec = tween(300),
         label = "chip_border"
     )
@@ -628,22 +545,22 @@ fun LiquidChip(
     Box(
         modifier = modifier
             .height(LiquidDimensions.ChipHeight)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(backgroundColor)
-            .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp))
             .clickable(enabled = enabled) {
                 haptic.performHapticFeedback(
                     androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
                 )
                 onClick()
             }
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text,
             color = textColor,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
             fontFamily = FontFamily.SansSerif,
             letterSpacing = 0.01.sp
@@ -669,17 +586,28 @@ fun LiquidLutCard(
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
-    
-    // Generate LUT preview (blocking call for simplicity)
-    val previewBitmap = remember(item.assetPath, thumbnailBitmap) {
+
+    // Async LUT preview — avoids blocking the Compose render thread
+    var previewBitmap by remember(item.assetPath, thumbnailBitmap) {
+        mutableStateOf<Bitmap?>(null)
+    }
+    var isLoadingPreview by remember(item.assetPath, thumbnailBitmap) {
+        mutableStateOf(thumbnailBitmap != null)
+    }
+    LaunchedEffect(item.assetPath, thumbnailBitmap) {
         if (thumbnailBitmap != null) {
-            try {
-                val lut = runBlocking(Dispatchers.IO) { CubeLUTParser.parse(context, item.assetPath) }
-                if (lut != null) {
-                    runBlocking(Dispatchers.IO) { LutBitmapProcessor.applyLutToBitmap(thumbnailBitmap, lut) }
-                } else null
-            } catch (e: Exception) { null }
-        } else null
+            isLoadingPreview = true
+            previewBitmap = withContext(Dispatchers.IO) {
+                try {
+                    val lut = CubeLUTParser.parse(context, item.assetPath)
+                    if (lut != null) LutBitmapProcessor.applyLutToBitmap(thumbnailBitmap, lut) else null
+                } catch (e: Exception) { null }
+            }
+            isLoadingPreview = false
+        } else {
+            previewBitmap = null
+            isLoadingPreview = false
+        }
     }
     
     val borderColor by animateColorAsState(
@@ -691,7 +619,7 @@ fun LiquidLutCard(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp)
+            .padding(start = 2.dp, end = 6.dp, top = 2.dp, bottom = 2.dp)
             .clickable {
                 haptic.performHapticFeedback(
                     androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
@@ -701,12 +629,12 @@ fun LiquidLutCard(
     ) {
         Box(
             modifier = Modifier
-                .size(86.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .size(94.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .background(LiquidColors.SurfaceMedium)
                 .then(
                     if (selected) {
-                        Modifier.border(2.dp, borderColor, RoundedCornerShape(10.dp))
+                        Modifier.border(2.5.dp, borderColor, RoundedCornerShape(12.dp))
                     } else {
                         Modifier
                     }
@@ -714,7 +642,7 @@ fun LiquidLutCard(
         ) {
             if (previewBitmap != null) {
                 Image(
-                    bitmap = previewBitmap.asImageBitmap(),
+                    bitmap = previewBitmap!!.asImageBitmap(),
                     contentDescription = item.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -727,6 +655,25 @@ fun LiquidLutCard(
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(0.5f)
+                )
+            }
+
+            // Shimmer overlay while LUT preview is being generated
+            if (isLoadingPreview) {
+                val shimmerTransition = rememberInfiniteTransition(label = "shimmer")
+                val shimmerAlpha by shimmerTransition.animateFloat(
+                    initialValue = 0.15f,
+                    targetValue = 0.35f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(700, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "shimmer_alpha"
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(LiquidColors.GlassSurface.copy(alpha = shimmerAlpha))
                 )
             }
             
@@ -748,13 +695,13 @@ fun LiquidLutCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(30.dp)
+                        .height(28.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.70f)
+                                    Color.Black.copy(alpha = 0.60f)
                                 )
                             )
                         ),
@@ -813,7 +760,7 @@ fun LiquidLutCard(
                         }
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "調整",
+                            text = stringResource(R.string.adjustments),
                             color = Color.White,
                             fontSize = 8.sp,
                             fontFamily = FontFamily.SansSerif,
@@ -828,16 +775,16 @@ fun LiquidLutCard(
         Text(
             item.name,
             color = if (selected) LiquidColors.TextHighEmphasis else LiquidColors.TextMediumEmphasis,
-            fontSize = 9.0.sp,
+            fontSize = 10.sp,
             fontFamily = FontFamily.SansSerif,
             letterSpacing = 0.01.sp,
             textAlign = TextAlign.Center,
             maxLines = 2,
             minLines = 2,
             overflow = TextOverflow.Clip,
-            lineHeight = 11.0.sp,
+            lineHeight = 12.sp,
             modifier = Modifier
-                .width(86.dp)
+                .width(94.dp)
                 .padding(top = 6.dp, bottom = 2.dp)
         )
     }
@@ -857,14 +804,47 @@ fun GlassBottomSheet(
     squareTop: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val topRadius = if (squareTop) 0.dp else 20.dp
+    val topRadius = if (squareTop) 0.dp else 22.dp
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(topStart = topRadius, topEnd = topRadius))
-            .background(LiquidColors.SurfaceDark.copy(alpha = 0.87f))
-            .padding(top = 16.dp, bottom = 20.dp, start = 16.dp, end = 16.dp),
-        content = content
-    )
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        LiquidColors.SurfaceMedium.copy(alpha = 0.95f),
+                        LiquidColors.SurfaceDark.copy(alpha = 0.97f)
+                    )
+                )
+            )
+            .drawBehind {
+                // Subtle top border highlight
+                drawLine(
+                    color = Color(0x28FFFFFF),
+                    start = Offset(topRadius.toPx(), 0f),
+                    end = Offset(size.width - topRadius.toPx(), 0f),
+                    strokeWidth = 1f
+                )
+            }
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {}
+            .padding(top = 10.dp, bottom = 16.dp, start = 18.dp, end = 18.dp)
+    ) {
+        // Drag handle
+        if (!squareTop) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 14.dp)
+                    .width(44.dp)
+                    .height(4.5.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Color(0x50FFFFFF))
+            )
+        }
+        content()
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -882,11 +862,11 @@ fun LiquidSectionHeader(
     Text(
         text.uppercase(),
         color = LiquidColors.AccentPrimary,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Medium,
+        fontSize = 11.5.sp,
+        fontWeight = FontWeight.SemiBold,
         fontFamily = FontFamily.SansSerif,
-        letterSpacing = 0.12.sp,
-        modifier = modifier.padding(bottom = 8.dp)
+        letterSpacing = 0.15.sp,
+        modifier = modifier.padding(bottom = 10.dp)
     )
 }
 
@@ -903,7 +883,28 @@ fun LiquidPlaceholderContent(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    
+
+    // Breathing animation for placeholder icon
+    val infiniteTransition = rememberInfiniteTransition(label = "placeholder_breath")
+    val breathScale by infiniteTransition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "breath_scale"
+    )
+    val breathAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "breath_alpha"
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -912,30 +913,57 @@ fun LiquidPlaceholderContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(LiquidColors.GlassSurface)
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_add_photo),
-                contentDescription = null,
-                tint = LiquidColors.TextLowEmphasis,
-                modifier = Modifier.fillMaxSize()
+        // Pulsing icon with glow ring
+        Box(contentAlignment = Alignment.Center) {
+            // Outer glow ring
+            Box(
+                modifier = Modifier
+                    .size(130.dp)
+                    .scale(breathScale)
+                    .alpha(breathAlpha * 0.4f)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(LiquidColors.AccentPrimary.copy(alpha = 0.12f))
             )
+            // Icon container
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .scale(breathScale)
+                    .alpha(breathAlpha)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0x22FFFFFF),
+                                Color(0x10FFFFFF)
+                            )
+                        )
+                    )
+                    .border(
+                        1.dp,
+                        LiquidColors.AccentPrimary.copy(alpha = breathAlpha * 0.3f),
+                        RoundedCornerShape(24.dp)
+                    )
+                    .padding(22.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_add_photo),
+                    contentDescription = null,
+                    tint = LiquidColors.AccentPrimary.copy(alpha = 0.85f),
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
         
         Text(
             stringResource(R.string.label_pick_image),
             color = LiquidColors.TextHighEmphasis,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Light,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Normal,
             fontFamily = FontFamily.SansSerif,
             letterSpacing = 0.005.sp,
-            modifier = Modifier.padding(top = 36.dp)
+            modifier = Modifier.padding(top = 32.dp)
         )
         
         Text(
@@ -943,8 +971,8 @@ fun LiquidPlaceholderContent(
             color = LiquidColors.TextLowEmphasis,
             fontSize = 15.sp,
             textAlign = TextAlign.Center,
-            lineHeight = (15 * 1.5).sp,
-            modifier = Modifier.padding(top = 14.dp)
+            lineHeight = 24.sp,
+            modifier = Modifier.padding(top = 12.dp)
         )
         
         LiquidButton(
@@ -955,31 +983,31 @@ fun LiquidPlaceholderContent(
                 onPickImage()
             },
             modifier = Modifier
-                .padding(top = 44.dp)
-                .height(56.dp)
-                .widthIn(min = 200.dp)
+                .padding(top = 40.dp)
+                .height(58.dp)
+                .widthIn(min = 220.dp)
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_gallery),
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Text(
                 stringResource(R.string.btn_open_gallery),
                 color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.SansSerif,
-                letterSpacing = 0.015.sp
+                letterSpacing = 0.01.sp
             )
         }
     }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TOP BAR - Application header
+// TOP BAR- Application header
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -994,7 +1022,17 @@ fun LiquidTopBar(
 ) {
     val haptic = LocalHapticFeedback.current
     
-    Box(modifier = modifier.padding(horizontal = 24.dp, vertical = 24.dp)) {
+    Box(modifier = modifier
+        .background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    LiquidColors.SurfaceDark.copy(alpha = 0.75f),
+                    Color(0xFF0C0C11).copy(alpha = 0.5f),
+                    Color.Transparent
+                )
+            )
+        )
+        .padding(horizontal = 24.dp, vertical = 16.dp)){
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -1003,18 +1041,18 @@ fun LiquidTopBar(
                 Text(
                     stringResource(R.string.app_name),
                     color = LiquidColors.TextHighEmphasis,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.SansSerif,
                     letterSpacing = 0.005.sp
                 )
                 Text(
                     stringResource(R.string.subtitle_film_simulator).uppercase(),
                     color = LiquidColors.AccentPrimary,
-                    fontSize = 11.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
                     fontFamily = FontFamily.SansSerif,
-                    letterSpacing = 0.1.sp,
+                    letterSpacing = 0.15.sp,
                     modifier = Modifier.padding(top = 3.dp)
                 )
             }
@@ -1040,13 +1078,20 @@ fun LiquidTopBar(
                     )
                     onSave()
                 },
-                modifier = Modifier.width(80.dp)
+                modifier = Modifier.width(94.dp)
             ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_save),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(Modifier.width(5.dp))
                 Text(
                     stringResource(R.string.save),
                     color = Color.White,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.SansSerif
                 )
             }

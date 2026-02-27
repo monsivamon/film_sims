@@ -24,8 +24,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -78,8 +78,6 @@ fun GlassControlPanel(
     editState: EditState,
     watermarkState: WatermarkState,
     viewState: ViewState,
-    panelExpanded: Boolean,
-    onTogglePanel: () -> Unit,
     glSurfaceView: GLSurfaceView?,
     renderer: FilmSimRenderer?,
     isWatermarkActive: Boolean,
@@ -182,12 +180,11 @@ private fun LiquidBrandGenreLutSection(
         snapshotFlow { categoryListState.firstVisibleItemIndex }.collect { viewModel.setCategoryScrollIndex(it) }
     }
 
-    val brandListState2 = brandListState // alias for clarity
     // Brand chips
     LazyRow(
-        state = brandListState2,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.padding(bottom = 10.dp)
+        state = brandListState,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(bottom = 12.dp)
     ) {
         itemsIndexed(brands) { index, brand ->
             val isFree = brand.name in freeBrands
@@ -213,8 +210,8 @@ private fun LiquidBrandGenreLutSection(
     if (categories.isNotEmpty()) {
         LazyRow(
             state = categoryListState,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(bottom = 10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 12.dp)
         ) {
             itemsIndexed(categories) { index, cat ->
                 LiquidChip(
@@ -284,8 +281,8 @@ private fun LiquidLutRow(
 
     LazyRow(
         state = lutListState,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.height(120.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.height(130.dp)
     ) {
         itemsIndexed(items) { index, item ->
             LiquidLutCard(
@@ -324,9 +321,20 @@ fun LiquidAdjustPanel(
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-            .background(LiquidColors.SurfaceDark.copy(alpha = 0.87f))
-            .padding(top = 12.dp, bottom = 8.dp, start = 16.dp, end = 16.dp)
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        LiquidColors.SurfaceMedium.copy(alpha = 0.95f),
+                        LiquidColors.SurfaceDark.copy(alpha = 0.97f)
+                    )
+                )
+            )
+            .clickable(
+                indication = null, 
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            ) {}
+            .padding(top = 14.dp, bottom = 10.dp, start = 18.dp, end = 18.dp)
     ) {
         // ─── Tab Bar (Pill UI) ─────────────────────────────────────────────
         LiquidTabBar(
@@ -341,7 +349,7 @@ fun LiquidAdjustPanel(
             isProUser = isProUser,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp)
+                .padding(bottom = 14.dp)
         )
 
         // ─── Tab Content ───────────────────────────────────────────────────
@@ -402,38 +410,37 @@ private fun LiquidTabBar(
 
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(LiquidColors.GlassSurfaceDark)
-            .padding(3.dp),
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color(0x12FFFFFF))
+            .border(1.dp, Color(0x10FFFFFF), RoundedCornerShape(22.dp))
+            .padding(4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         tabs.forEach { (tab, labelRes) ->
             val isSelected = selectedTab == tab
-            val bgColor by animateColorAsState(
-                targetValue = if (isSelected) LiquidColors.AccentPrimary.copy(alpha = 0.25f)
-                else Color.Transparent,
-                animationSpec = tween(200),
+            val bgAlpha by animateColorAsState(
+                targetValue = if (isSelected) Color(0xFFFFAB60) else Color.Transparent,
+                animationSpec = tween(250),
                 label = "tab_bg"
             )
             val textColor by animateColorAsState(
-                targetValue = if (isSelected) LiquidColors.AccentPrimary
-                else LiquidColors.TextLowEmphasis,
-                animationSpec = tween(200),
+                targetValue = if (isSelected) Color(0xFF0C0C10) else LiquidColors.TextLowEmphasis,
+                animationSpec = tween(250),
                 label = "tab_text"
             )
 
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(bgColor)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(bgAlpha)
                     .clickable {
                         haptic.performHapticFeedback(
                             androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
                         )
                         onTabSelected(tab)
                     }
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 11.dp),
                 contentAlignment = Alignment.Center
             ) {
                 val label = stringResource(labelRes)
@@ -441,10 +448,10 @@ private fun LiquidTabBar(
                 Text(
                     displayLabel,
                     color = textColor,
-                    fontSize = 12.sp,
-                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                     fontFamily = FontFamily.SansSerif,
-                    letterSpacing = 0.02.sp
+                    letterSpacing = 0.01.sp
                 )
             }
         }
@@ -478,26 +485,26 @@ private fun LiquidGrainControls(
             painter = painterResource(R.drawable.ic_grain),
             contentDescription = null,
             tint = accent,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(12.dp))
         Text(
             stringResource(R.string.label_film_grain),
             color = LiquidColors.TextMediumEmphasis,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontFamily = FontFamily.SansSerif,
             modifier = Modifier.weight(1f)
         )
         Text(
             "${(grainIntensity * 100).toInt()}%",
             color = accent,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.SansSerif,
             textAlign = TextAlign.End,
-            modifier = Modifier.width(42.dp).padding(end = 8.dp)
+            modifier = Modifier.width(46.dp).padding(end = 8.dp)
         )
-        Checkbox(
+        Switch(
             checked = grainEnabled,
             onCheckedChange = { on ->
                 grainEnabled = on
@@ -512,29 +519,37 @@ private fun LiquidGrainControls(
                 }
                 onRefreshWatermark()
             },
-            colors = CheckboxDefaults.colors(checkedColor = LiquidColors.AccentPrimary),
-            modifier = Modifier.size(24.dp)
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color(0xFF0C0C10),
+                checkedTrackColor = LiquidColors.AccentPrimary,
+                uncheckedThumbColor = LiquidColors.TextLowEmphasis,
+                uncheckedTrackColor = Color(0x22FFFFFF),
+                uncheckedBorderColor = Color(0x30FFFFFF)
+            )
         )
     }
 
     Slider(
         value = grainIntensity,
-        onValueChange = { grainIntensity = it },
-        onValueChangeFinished = {
-            viewModel.setGrainIntensity(grainIntensity)
-            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+        onValueChange = { value ->
+            grainIntensity = value
+            viewModel.setGrainIntensity(value)
+            // Remove haptic on every tiny change, optional. But keep it simple.
             if (grainEnabled) {
                 if (!isWatermarkActive) {
                     glSurfaceView?.queueEvent {
-                        renderer?.setGrainIntensity(grainIntensity)
+                        renderer?.setGrainIntensity(value)
                         glSurfaceView.requestRender()
                     }
                 }
                 onRefreshWatermark()
             }
         },
+        onValueChangeFinished = {
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+        },
         enabled = grainEnabled,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
         colors = SliderDefaults.colors(
             thumbColor = accent,
             activeTrackColor = accent,
@@ -553,17 +568,17 @@ private fun LiquidGrainControls(
             painter = painterResource(R.drawable.ic_grain),
             contentDescription = null,
             tint = LiquidColors.AccentSecondary,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(12.dp))
         Text(
             stringResource(R.string.label_grain_style),
             color = LiquidColors.TextMediumEmphasis,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontFamily = FontFamily.SansSerif,
             modifier = Modifier.padding(end = 12.dp)
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("Xiaomi" to R.string.grain_style_xiaomi, "OnePlus" to R.string.grain_style_oneplus).forEach { (key, labelRes) ->
                 LiquidChip(
                     text = stringResource(labelRes),
@@ -625,14 +640,26 @@ private fun LiquidWatermarkControls(
     val showLens   = showFields && selectedStyle !in noLensStyles
     val showTime   = showFields && selectedStyle !in noTimeStyles
 
+    // Debounce text inputs to avoid GPU rendering lag on every keystroke
+    LaunchedEffect(deviceName, timeText, locationText, lensInfo) {
+        kotlinx.coroutines.delay(300)
+        viewModel.updateWatermarkFields(
+            deviceName = deviceName,
+            timeText = timeText,
+            locationText = locationText,
+            lensInfo = lensInfo
+        )
+        onRefreshWatermark()
+    }
+
     Column {
         Text(
             stringResource(R.string.header_watermark).uppercase(),
             color = LiquidColors.AccentPrimary,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.SansSerif,
-            letterSpacing = 0.15.sp,
+            letterSpacing = 0.18.sp,
             modifier = Modifier.padding(bottom = 4.dp)
         )
         
@@ -644,19 +671,19 @@ private fun LiquidWatermarkControls(
                 painter = painterResource(R.drawable.ic_watermark),
                 contentDescription = null,
                 tint = LiquidColors.AccentSecondary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.width(12.dp))
             Text(
                 stringResource(R.string.label_watermark_brand),
                 color = LiquidColors.TextMediumEmphasis,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontFamily = FontFamily.SansSerif,
                 modifier = Modifier.padding(end = 12.dp)
             )
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 listOf(R.string.brand_none to "None", R.string.brand_honor to "Honor", R.string.brand_meizu to "Meizu", R.string.brand_vivo to "Vivo", R.string.brand_tecno to "TECNO").forEach { (labelRes, brand) ->
                     LiquidChip(
@@ -682,13 +709,13 @@ private fun LiquidWatermarkControls(
                 Text(
                     stringResource(R.string.label_watermark_style),
                     color = LiquidColors.TextMediumEmphasis,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontFamily = FontFamily.SansSerif,
                     modifier = Modifier.padding(end = 12.dp)
                 )
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     availableStyles.forEach { (labelRes, style) ->
                         LiquidChip(
@@ -705,11 +732,11 @@ private fun LiquidWatermarkControls(
             }
         }
         
-        if (showDevice) LiquidWatermarkInputRow(stringResource(R.string.label_watermark_device), deviceName) { deviceName = it; viewModel.updateWatermarkFields(deviceName = it); onRefreshWatermark() }
-        if (showLens) LiquidWatermarkInputRow(stringResource(R.string.label_watermark_lens), lensInfo) { lensInfo = it; viewModel.updateWatermarkFields(lensInfo = it); onRefreshWatermark() }
+        if (showDevice) LiquidWatermarkInputRow(stringResource(R.string.label_watermark_device), deviceName) { deviceName = it }
+        if (showLens) LiquidWatermarkInputRow(stringResource(R.string.label_watermark_lens), lensInfo) { lensInfo = it }
         if (showTime) {
-            LiquidWatermarkInputRow(stringResource(R.string.label_watermark_time), timeText) { timeText = it; viewModel.updateWatermarkFields(timeText = it); onRefreshWatermark() }
-            LiquidWatermarkInputRow(stringResource(R.string.label_watermark_location), locationText) { locationText = it; viewModel.updateWatermarkFields(locationText = it); onRefreshWatermark() }
+            LiquidWatermarkInputRow(stringResource(R.string.label_watermark_time), timeText) { timeText = it }
+            LiquidWatermarkInputRow(stringResource(R.string.label_watermark_location), locationText) { locationText = it }
         }
     }
 }
@@ -721,22 +748,30 @@ private fun LiquidWatermarkInputRow(
     onValueChange: (String) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 30.dp, top = 4.dp, bottom = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 32.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             label,
             color = LiquidColors.TextLowEmphasis,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             fontFamily = FontFamily.SansSerif,
-            modifier = Modifier.width(56.dp).padding(end = 8.dp)
+            modifier = Modifier
+                .weight(0.25f)
+                .padding(end = 8.dp)
         )
         Box(
-            modifier = Modifier.weight(1f).height(34.dp)
+            modifier = Modifier
+                .weight(0.75f)
+                .height(40.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(LiquidColors.GlassSurfaceDark)
-                .border(1.dp, LiquidColors.GlassBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 8.dp),
+                .background(Color(0x10FFFFFF))
+                .border(1.dp, Color(0x18FFFFFF), RoundedCornerShape(12.dp))
+                .padding(horizontal = 10.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             androidx.compose.foundation.text.BasicTextField(
@@ -744,12 +779,23 @@ private fun LiquidWatermarkInputRow(
                 onValueChange = onValueChange,
                 singleLine = true,
                 textStyle = TextStyle(
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                     fontFamily = FontFamily.SansSerif,
                     color = LiquidColors.TextHighEmphasis
                 ),
                 cursorBrush = androidx.compose.ui.graphics.SolidColor(LiquidColors.AccentPrimary),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        Text(
+                            "—",
+                            color = LiquidColors.TextDisabled,
+                            fontSize = 13.sp,
+                            fontFamily = FontFamily.SansSerif
+                        )
+                    }
+                    inner()
+                }
             )
         }
     }

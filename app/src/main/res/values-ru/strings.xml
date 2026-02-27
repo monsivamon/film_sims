@@ -87,4 +87,25 @@
     <string name="lut_fotos_mono_gregwilliams">Моно Грег Уильямс</string>
     <string name="lut_fotos_mono_selenium">Моно Селен</string>
     <string name="lut_fotos_mono_sepia">Моно Сепия</string>
+    <!-- Pro Licenses -->
+    <string name="label_license_permanent">Постоянная лицензия</string>
+    <string name="label_license_version_mismatch">Ваша лицензия ограничена версией %1$s!</string>
+
+    <!-- Translated UI additions -->
+    <string name="adjustments">Настройки</string>
+    <string name="grain">Зерно</string>
+    <string name="watermark">Водяной знак</string>
+    <string name="watermark_select_brand">Выберите бренд для просмотра стилей водяных знаков</string>
+    <string name="device_name">Имя устройства</string>
+    <string name="time">Время</string>
+    <string name="location">Местоположение</string>
+    <string name="lens_info">Инфо об объективе</string>
+    <string name="label_account">Аккаунт</string>
+    <string name="sign_in_description">Войдите через Google, чтобы разблокировать функции Лицензии</string>
+    <string name="btn_sign_in_google">Войти через Google</string>
+    <string name="btn_sign_out">Выйти</string>
+    <string name="label_pro">ЛИЦЕНЗИЯ</string>
+    <string name="pro_brand_locked">Функция лицензии: Войдите, чтобы разблокировать этот бренд</string>
+    <string name="pro_watermark_locked">Функция лицензии: Войдите, чтобы разблокировать водяные знаки</string>
+    <string name="pro_quality_limit">Функция лицензии: Для качества выше 60% требуется Лицензия</string>
 </resources>

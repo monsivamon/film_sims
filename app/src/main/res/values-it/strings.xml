@@ -87,4 +87,25 @@
     <string name="lut_fotos_mono_gregwilliams">Mono Greg Williams</string>
     <string name="lut_fotos_mono_selenium">Mono Selenio</string>
     <string name="lut_fotos_mono_sepia">Mono Seppia</string>
+    <!-- Pro Licenses -->
+    <string name="label_license_permanent">Licenza Permanente</string>
+    <string name="label_license_version_mismatch">La tua licenza è limitata alla versione %1$s!</string>
+
+    <!-- Translated UI additions -->
+    <string name="adjustments">Regolazioni</string>
+    <string name="grain">Grana</string>
+    <string name="watermark">Filigrana</string>
+    <string name="watermark_select_brand">Seleziona una marca per visualizzare gli stili di filigrana</string>
+    <string name="device_name">Nome del dispositivo</string>
+    <string name="time">Ora</string>
+    <string name="location">Posizione</string>
+    <string name="lens_info">Informazioni obiettivo</string>
+    <string name="label_account">Account</string>
+    <string name="sign_in_description">Accedi con Google per sbloccare le funzioni con Licenza</string>
+    <string name="btn_sign_in_google">Accedi con Google</string>
+    <string name="btn_sign_out">Esci</string>
+    <string name="label_pro">LICENZA</string>
+    <string name="pro_brand_locked">Funzione con licenza: Accedi per sbloccare questa marca</string>
+    <string name="pro_watermark_locked">Funzione con licenza: Accedi per sbloccare le filigrane</string>
+    <string name="pro_quality_limit">Funzione con licenza: La qualità superiore al 60% richiede una Licenza</string>
 </resources>

@@ -1,21 +1,18 @@
 package com.tqmane.filmsim.util
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import com.tqmane.filmsim.BuildConfig
 import com.tqmane.filmsim.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import java.util.concurrent.TimeUnit
 
 data class ReleaseInfo(
     val tagName: String,
@@ -28,60 +25,38 @@ data class ReleaseInfo(
  * Checks for application updates from GitHub Releases.
  *
  * Security:
- * - Certificate pinning for api.github.com
+ * - Certificate pinning is configured in [com.tqmane.filmsim.di.NetworkModule] and
+ *   injected via [com.tqmane.filmsim.di.UpdateCheckerWrapper]. A single shared
+ *   [OkHttpClient] is used throughout the app to avoid duplicate SSL/pinning state.
  * - Retry with exponential back-off (max 3 attempts)
  *
  * HOW TO UPDATE CERTIFICATE PINS:
  * 1. openssl s_client -connect api.github.com:443 -servername api.github.com < /dev/null 2>/dev/null \
  *      | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der \
  *      | openssl dgst -sha256 -binary | openssl enc -base64
- * 2. Replace the sha256 value in [certificatePinner].
+ * 2. Replace the sha256 values in NetworkModule.kt.
  * 3. Keep the previous pin as a backup during rotation.
  */
 object UpdateChecker {
 
     private const val TAG = "UpdateChecker"
-    private const val PREFS_NAME = "update_checker"
-    private const val KEY_SKIP_VERSION = "skip_version"
-    private const val KEY_LAST_CHECK = "last_check"
-    private const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L // 24 hours
-
     private const val MAX_RETRIES = 3
     private const val INITIAL_BACKOFF_MS = 1_000L
-
-    private val certificatePinner = CertificatePinner.Builder()
-        // DigiCert Global Root G2 (current GitHub CA)
-        .add("api.github.com", "sha256/i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=")
-        // DigiCert Global Root CA (backup / rotation)
-        .add("api.github.com", "sha256/r/mIkG3eEpVdm+u/ko/cwxzOMo1bk4TyHIlByibiA5E=")
-        .build()
-
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
-        .writeTimeout(10, TimeUnit.SECONDS)
-        .certificatePinner(certificatePinner)
-        .build()
 
     /**
      * Check for updates from GitHub Releases.
      * Returns [ReleaseInfo] if a newer version is available, null otherwise.
+     *
+     * @param client A pre-configured [OkHttpClient] with certificate pinning (from DI).
      */
-    suspend fun checkForUpdate(context: Context, force: Boolean = false): ReleaseInfo? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    suspend fun checkForUpdate(context: Context, client: OkHttpClient, force: Boolean = false): ReleaseInfo? {
         val githubApiUrl = context.getString(R.string.github_api_url)
 
-        // Skip check if recently checked (unless forced)
-        if (!force) {
-            val lastCheck = prefs.getLong(KEY_LAST_CHECK, 0)
-            if (System.currentTimeMillis() - lastCheck < CHECK_INTERVAL_MS) {
-                return null
-            }
-        }
+        // Show update dialog on every launch if an update is available (no interval gate).
 
         return withContext(Dispatchers.IO) {
             try {
-                val body = executeWithRetry(githubApiUrl) ?: return@withContext null
+                val body = executeWithRetry(client, githubApiUrl) ?: return@withContext null
                 val json = JSONObject(body)
 
                 val tagName = json.getString("tag_name")
@@ -89,14 +64,8 @@ object UpdateChecker {
                 val releaseNotes = json.optString("body", "")
                 val htmlUrl = json.getString("html_url")
 
-                // Update last check time
-                prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
-
-                // Check if this version is newer
                 val currentVersion = BuildConfig.VERSION_NAME
-                val skippedVersion = prefs.getString(KEY_SKIP_VERSION, null)
-
-                if (isNewerVersion(version, currentVersion) && version != skippedVersion) {
+                if (isNewerVersion(version, currentVersion)) {
                     ReleaseInfo(tagName, version, releaseNotes, htmlUrl)
                 } else {
                     null
@@ -112,7 +81,7 @@ object UpdateChecker {
      * Execute an HTTP GET with exponential back-off retry.
      * Returns the response body string, or null on failure.
      */
-    private suspend fun executeWithRetry(url: String): String? {
+    private suspend fun executeWithRetry(client: OkHttpClient, url: String): String? {
         var lastException: Exception? = null
         var backoff = INITIAL_BACKOFF_MS
 
@@ -149,15 +118,7 @@ object UpdateChecker {
         return null
     }
 
-    /**
-     * Mark a version as skipped so the user won't be prompted again.
-     */
-    fun skipVersion(context: Context, version: String) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_SKIP_VERSION, version)
-            .apply()
-    }
+
 
     /**
      * Compare two semantic versions (e.g., "1.0.1" vs "1.0.0").
