@@ -15,19 +15,23 @@ import com.tqmane.filmsim.util.SecurityManager
 
 /**
  * Checks whether the currently signed-in user's email exists in the
- * Firestore `pro_users` collection.
+ * Firestore `pro_users` or `android` collection.
  *
  * Firestore構成:
- *   pro_users/{docId} (docIdは任意のID)
+ *   pro_users/{docId} または android/{docId} (docIdは任意のID)
  *   emails: array  ← Proユーザーのメールアドレスのリスト
  *
  * 例:
- *   pro_users/ID_list
+ *   android/ID_list
  *     emails: ["example@example.com", "example2@example.com"]
  *
  * Firestoreセキュリティルール:
  *   match /pro_users/{docId} {
  *     allow list: if request.auth != null;  // array-contains クエリに必要
+ *     allow write: if false;
+ *   }
+ *   match /android/{docId} {
+ *     allow list: if request.auth != null;
  *     allow write: if false;
  *   }
  */
@@ -52,7 +56,7 @@ class ProUserRepository @Inject constructor(
     val isPermanentLicense: StateFlow<Boolean> = _isPermanentLicense.asStateFlow()
 
     /**
-     * Firestore の pro_users コレクションを email フィールドで検索する。
+     * Firestore の pro_users および android コレクションを email フィールドで検索する。
      * ドキュメントが見つかれば Pro ユーザーと判定。
      */
     suspend fun checkProStatus(email: String?) {
@@ -64,12 +68,19 @@ class ProUserRepository @Inject constructor(
             return
         }
         val normalizedEmail = email.trim().lowercase()
-        Log.d(TAG, "Querying pro_users where email == '$normalizedEmail'")
+        Log.d(TAG, "Querying pro_users and android where email == '$normalizedEmail'")
         try {
-            val querySnap = firestore.collection("pro_users")
+            val proUsersSnap = firestore.collection("pro_users")
                 .whereArrayContains("emails", normalizedEmail)
                 .get()
                 .await()
+
+            val androidSnap = firestore.collection("android")
+                .whereArrayContains("emails", normalizedEmail)
+                .get()
+                .await()
+
+            val allDocs = proUsersSnap.documents + androidSnap.documents
             
             var found = false
             var mismatchVersion: String? = null
@@ -81,7 +92,7 @@ class ProUserRepository @Inject constructor(
                 ""
             }
 
-            for (doc in querySnap.documents) {
+            for (doc in allDocs) {
                 val docId = doc.id
                 if (docId == "ID_list") {
                     found = true
@@ -97,7 +108,7 @@ class ProUserRepository @Inject constructor(
                 }
             }
 
-            Log.d(TAG, "Query result: found=$found, mismatchVersion=$mismatchVersion, docCount=${querySnap.size()}")
+            Log.d(TAG, "Query result: found=$found, mismatchVersion=$mismatchVersion, docCount=${allDocs.size}")
             
             // SECURITY CHECK: Verify app environment integrity before enabling Pro features
             if (found && !SecurityManager.isEnvironmentTrusted(context)) {
