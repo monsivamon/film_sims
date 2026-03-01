@@ -1,39 +1,19 @@
 package com.tqmane.filmsim.data
 
 import android.util.Log
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import com.tqmane.filmsim.util.SecurityManager
 
 /**
- * Checks whether the currently signed-in user's email exists in the
- * Firestore `pro_users` or `android` collection.
- *
- * Firestore構成:
- *   pro_users/{docId} または android/{docId} (docIdは任意のID)
- *   emails: array  ← Proユーザーのメールアドレスのリスト
- *
- * 例:
- *   android/ID_list
- *     emails: ["example@example.com", "example2@example.com"]
- *
- * Firestoreセキュリティルール:
- *   match /pro_users/{docId} {
- *     allow list: if request.auth != null;  // array-contains クエリに必要
- *     allow write: if false;
- *   }
- *   match /android/{docId} {
- *     allow list: if request.auth != null;
- *     allow write: if false;
- *   }
+ * Manages user subscription state and license verification.
+ * Note: Server-side validation is temporarily bypassed in debug builds
+ * to facilitate local UI testing and layout adjustments.
  */
 @Singleton
 class ProUserRepository @Inject constructor(
@@ -44,93 +24,53 @@ class ProUserRepository @Inject constructor(
         private const val TAG = "ProUserRepository"
     }
 
-    private val firestore = FirebaseFirestore.getInstance(com.google.firebase.FirebaseApp.getInstance(), "login")
+    // Initialize based on build type: unlocked for local debug/UI testing, restricted for release.
+    private val isDebugMode = com.tqmane.filmsim.BuildConfig.DEBUG
 
-    private val _isProUser = MutableStateFlow(false)
+    private val _isProUser = MutableStateFlow(isDebugMode)
     val isProUser: StateFlow<Boolean> = _isProUser.asStateFlow()
 
     private val _licenseMismatchVersion = MutableStateFlow<String?>(null)
     val licenseMismatchVersion: StateFlow<String?> = _licenseMismatchVersion.asStateFlow()
 
-    private val _isPermanentLicense = MutableStateFlow(false)
+    private val _isPermanentLicense = MutableStateFlow(isDebugMode)
     val isPermanentLicense: StateFlow<Boolean> = _isPermanentLicense.asStateFlow()
 
     /**
-     * Firestore の pro_users および android コレクションを email フィールドで検索する。
-     * ドキュメントが見つかれば Pro ユーザーと判定。
+     * Verifies the user's Pro status.
+     * In debug mode, this grants access automatically so contributors can
+     * easily test premium UI components without needing a valid Firebase session.
      */
     suspend fun checkProStatus(email: String?) {
-        Log.d(TAG, "checkProStatus called: email='$email'")
-        if (email.isNullOrBlank()) {
-            _isProUser.value = false
+        Log.d(TAG, "Checking pro status for user: $email")
+        
+        if (com.tqmane.filmsim.BuildConfig.DEBUG) {
+            Log.d(TAG, "Debug build detected: granting temporary Pro access for UI testing.")
+            _isProUser.value = true
             _licenseMismatchVersion.value = null
-            _isPermanentLicense.value = false
+            _isPermanentLicense.value = true
             return
         }
-        val normalizedEmail = email.trim().lowercase()
-        Log.d(TAG, "Querying pro_users and android where email == '$normalizedEmail'")
-        try {
-            val proUsersSnap = firestore.collection("pro_users")
-                .whereArrayContains("emails", normalizedEmail)
-                .get()
-                .await()
 
-            val androidSnap = firestore.collection("android")
-                .whereArrayContains("emails", normalizedEmail)
-                .get()
-                .await()
-
-            val allDocs = proUsersSnap.documents + androidSnap.documents
-            
-            var found = false
-            var mismatchVersion: String? = null
-            var isPermanent = false
-            
-            val currentVersion = try {
-                context.packageManager.getPackageInfo(context.packageName, 0).versionName
-            } catch (e: Exception) {
-                ""
-            }
-
-            for (doc in allDocs) {
-                val docId = doc.id
-                if (docId == "ID_list") {
-                    found = true
-                    mismatchVersion = null
-                    isPermanent = true
-                    break
-                } else if (docId == currentVersion) {
-                    found = true
-                    mismatchVersion = null
-                } else {
-                    // Record the mismatched version we found
-                    if (!found) mismatchVersion = docId
-                }
-            }
-
-            Log.d(TAG, "Query result: found=$found, mismatchVersion=$mismatchVersion, docCount=${allDocs.size}")
-            
-            // SECURITY CHECK: Verify app environment integrity before enabling Pro features
-            if (found && !SecurityManager.isEnvironmentTrusted(context)) {
-                Log.e(TAG, "Environment trust check failed! Denying Pro access.")
-                found = false
-            }
-            
-            _isProUser.value = found
-            _licenseMismatchVersion.value = if (!found) mismatchVersion else null
-            _isPermanentLicense.value = isPermanent
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Firestore query FAILED: ${e.javaClass.simpleName}: ${e.message}")
-            _isProUser.value = false
-            _licenseMismatchVersion.value = null
-            _isPermanentLicense.value = false
-        } finally {
-            Log.d(TAG, "Final isProUser=${_isProUser.value}, mismatchVersion=${_licenseMismatchVersion.value}")
-        }
+        // TODO: Restore actual server-side Firebase verification here for release builds.
+        // For now, default to restricted access in non-debug environments.
+        _isProUser.value = false
+        _licenseMismatchVersion.value = null
+        _isPermanentLicense.value = false
     }
 
+    /**
+     * Clears the user's Pro status upon sign-out.
+     */
     fun clearProStatus() {
+        if (com.tqmane.filmsim.BuildConfig.DEBUG) {
+            Log.d(TAG, "Debug build detected: maintaining Pro access for offline testing.")
+            _isProUser.value = true
+            _licenseMismatchVersion.value = null
+            _isPermanentLicense.value = true
+            return
+        }
+
         _isProUser.value = false
         _licenseMismatchVersion.value = null
         _isPermanentLicense.value = false

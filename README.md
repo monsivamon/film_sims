@@ -1,25 +1,37 @@
-# FilmSims - フィルムシミュレーター
+# FilmSims - Film Simulator
 
-FilmSimsは、写真にフィルムのような質感を与えるAndroid向け写真編集アプリです。
-3D LUT（ルックアップテーブル）技術を使用し、様々なフィルムストックやカメラブランドの色調を再現します。
+FilmSims is a photo editing app for Android that applies film-like textures to your photos. It utilizes 3D LUT (Look-Up Table) technology to replicate the rich color profiles of various film stocks and camera brands.
 
-## 主な機能
+## Key Features
 
-*   **フィルムシミュレーション:** 複数のプリセットから好みの色調を選択・適用
-*   **高度な調整:** 
-    *   エフェクトの強度調整 (0-100%)
-    *   フィルムグレイン（粒子）の追加と調整
-*   **使いやすいUI:**
-    *   直感的な操作パネル
-    *   2本指でのプレビュー画像拡大・縮小（ピンチズーム）
-    *   ブランド・ジャンルごとのフィルター分類
-*   **高画質保存:** 
-    *   GPUアクセラレーションによる高速処理
-    *   Exif情報の保持（撮影日時やカメラ設定など）
-    *   オリジナル解像度での書き出し
+* **Film Simulation:** Choose and apply your favorite color tones from multiple presets.
+* **Advanced Adjustments:** * Granular effect intensity control (0-100%).
+  * Addition and adjustment of film grain.
+* **Intuitive UI:**
+  * Easy-to-use control panel.
+  * Two-finger pinch-to-zoom for detailed previewing.
+  * Filter categorization by brand and genre.
+* **High-Quality Export:** * High-speed processing powered by GPU acceleration.
+  * Preservation of Exif data (shooting date, camera settings, etc.).
+  * Export at original resolution without quality loss.
 
-## 開発環境
+## Development Environment
 
-*   Android SDK 34
-*   Kotlin / Jetpack
-*   OpenGL ES 3.0 (画像処理エンジン)
+* Android SDK 34
+* Kotlin / Jetpack Compose
+* OpenGL ES 3.0 (Image Processing Engine)
+
+---
+
+## ⚠️ Developer Notes (Fork Modifications)
+
+### What's Changed
+* Disabled some features for local debugging purposes.
+
+### Build Instructions & Limitations
+Please note that **this repository will NOT work fully if built out-of-the-box.** To respect and protect the original author's proprietary data and intellectual property, this repository does **NOT** include:
+1. Proprietary filter assets (LUTs, encrypted textures, etc.).
+2. The specific build configurations and keys required for decryption.
+3. Firebase configuration files (`google-services.json`).
+
+If you wish to build this project locally for development, you must provide your own configuration files and ensure all required asset files are placed within the `app/src/main/assets/` directory.

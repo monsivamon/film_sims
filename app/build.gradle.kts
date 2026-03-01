@@ -19,8 +19,7 @@ android {
         targetSdk = 34
         versionCode = 15
         versionName = "1.1.2"
-
-        // Read ASSET_KEY from secrets.properties (or use a fallback for external contributors)
+        // Load ASSET_KEY from local properties for development
         val secretsFile = rootProject.file("secrets.properties")
         var assetKey = "placeholder_key"
         if (secretsFile.exists()) {
