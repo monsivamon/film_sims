@@ -36,6 +36,9 @@ class ProUserRepository @Inject constructor(
     private val _isPermanentLicense = MutableStateFlow(isDebugMode)
     val isPermanentLicense: StateFlow<Boolean> = _isPermanentLicense.asStateFlow()
 
+    private val _proCheckNetworkError = MutableStateFlow(false)
+    val proCheckNetworkError: StateFlow<Boolean> = _proCheckNetworkError.asStateFlow()
+
     /**
      * Verifies the user's Pro status.
      * In debug mode, this grants access automatically so contributors can
