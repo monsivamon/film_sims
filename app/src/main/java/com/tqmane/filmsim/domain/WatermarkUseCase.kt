@@ -41,6 +41,7 @@ data class SaveResult(val width: Int, val height: Int, val path: String, val fil
 
 class WatermarkUseCaseImpl @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val watermarkProcessor: WatermarkProcessor,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : WatermarkUseCase {
@@ -56,14 +57,14 @@ class WatermarkUseCaseImpl @Inject constructor(
         } else {
             previewBitmap
         }
-        WatermarkProcessor.applyWatermark(context, base, config)
+        watermarkProcessor.applyWatermark(base, config)
     }
 
     override suspend fun applyWatermark(
         bitmap: Bitmap,
         config: WatermarkProcessor.WatermarkConfig
     ): Bitmap = withContext(defaultDispatcher) {
-        WatermarkProcessor.applyWatermark(context, bitmap, config)
+        watermarkProcessor.applyWatermark(bitmap, config)
     }
 
     override suspend fun applyCpuLut(

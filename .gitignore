@@ -75,7 +75,6 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific (Large assets or generated resources)
-app/src/main/assets/
 app/src/main/assets_raw/
 luts/
 textures/
@@ -86,3 +85,9 @@ vivo_watermark_full*/
 __pycache__/
 tools/
 tecno_watermark_extracted/
+app_bak/
+.github/
+.agent/
+
+# Secret
+app/src/main/java/com/tqmane/filmsim/data/ProUserRepository.kt
