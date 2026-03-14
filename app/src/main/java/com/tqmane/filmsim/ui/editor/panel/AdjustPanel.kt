@@ -1,21 +1,24 @@
 package com.tqmane.filmsim.ui.editor.panel
 
 import android.opengl.GLSurfaceView
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -30,15 +33,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -54,14 +59,17 @@ import com.tqmane.filmsim.ui.EditState
 import com.tqmane.filmsim.ui.EditorViewModel
 import com.tqmane.filmsim.ui.Preset
 import com.tqmane.filmsim.ui.WatermarkState
+import com.tqmane.filmsim.ui.component.LiquidChip
 import com.tqmane.filmsim.ui.component.LiquidIntensitySlider
+import com.tqmane.filmsim.ui.component.LiquidNoticeCard
+import com.tqmane.filmsim.ui.component.LiquidSectionHeader
 import com.tqmane.filmsim.ui.component.LiquidTabBar
 import com.tqmane.filmsim.ui.theme.LiquidColors
 
 internal enum class AdjustTab { INTENSITY, ADJUST, GRAIN, WATERMARK, PRESETS }
 
 @Composable
-fun AdjustPanel(
+internal fun AdjustPanel(
     editState: EditState,
     watermarkState: WatermarkState,
     viewModel: EditorViewModel,
@@ -69,28 +77,97 @@ fun AdjustPanel(
     renderer: FilmSimRenderer?,
     isWatermarkActive: Boolean,
     onRefreshWatermark: () -> Unit,
+    selectedTab: AdjustTab,
+    onTabSelected: (AdjustTab) -> Unit,
+    showPanelHints: Boolean,
+    onSelectOverlayFilter: () -> Unit,
+    compareEnabled: Boolean,
+    comparePosition: Float,
+    compareVertical: Boolean,
+    onComparePositionChange: (Float) -> Unit,
+    onCompareVerticalChange: (Boolean) -> Unit,
+    onClose: () -> Unit,
     isProUser: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    var selectedTab by rememberSaveable {
-        mutableStateOf(AdjustTab.INTENSITY.name)
+    val lockedFeatureMessageResState = rememberSaveable {
+        mutableIntStateOf(R.string.pro_adjust_tools_hint)
     }
-    val currentTab = try { AdjustTab.valueOf(selectedTab) } catch (_: Exception) { AdjustTab.INTENSITY }
+
+    // Stable lambdas to prevent unnecessary recomposition of child Composables
+    val currentGlSurfaceView by rememberUpdatedState(glSurfaceView)
+    val currentRenderer by rememberUpdatedState(renderer)
+    val currentIsWatermarkActive by rememberUpdatedState(isWatermarkActive)
+    val currentEditState by rememberUpdatedState(editState)
+    val currentOnRefreshWatermark by rememberUpdatedState(onRefreshWatermark)
+    val stableOnIntensityChange = remember(viewModel) {
+        { value: Float ->
+            viewModel.setIntensity(value)
+            if (!currentIsWatermarkActive) {
+                currentGlSurfaceView?.let { glView ->
+                    glView.queueEvent {
+                        currentRenderer?.setIntensity(value)
+                        glView.requestRender()
+                    }
+                }
+            }
+            currentOnRefreshWatermark()
+        }
+    }
+    val stableOnOverlayIntensityChange = remember(viewModel) {
+        { value: Float ->
+            viewModel.setOverlayIntensity(value)
+            if (!currentIsWatermarkActive) {
+                currentGlSurfaceView?.let { glView ->
+                    glView.queueEvent {
+                        currentRenderer?.setOverlayIntensity(
+                            if (currentEditState.overlayLutPath != null) value else 0f
+                        )
+                        glView.requestRender()
+                    }
+                }
+            }
+            currentOnRefreshWatermark()
+        }
+    }
+
+    val currentTab = if (!isProUser && selectedTab in setOf(AdjustTab.ADJUST, AdjustTab.WATERMARK, AdjustTab.PRESETS)) {
+        AdjustTab.INTENSITY
+    } else {
+        selectedTab
+    }
+    val currentTabLabel = when (currentTab) {
+        AdjustTab.INTENSITY -> stringResource(R.string.adjustments)
+        AdjustTab.ADJUST -> stringResource(R.string.tab_adjust)
+        AdjustTab.GRAIN -> stringResource(R.string.grain)
+        AdjustTab.WATERMARK -> stringResource(R.string.watermark)
+        AdjustTab.PRESETS -> stringResource(R.string.tab_presets)
+    }
+    val currentHintMessage = when (currentTab) {
+        AdjustTab.INTENSITY -> stringResource(R.string.adjust_hint_intensity)
+        AdjustTab.ADJUST -> stringResource(R.string.adjust_hint_basic)
+        AdjustTab.GRAIN -> stringResource(R.string.adjust_hint_grain)
+        AdjustTab.WATERMARK -> stringResource(R.string.adjust_hint_watermark)
+        AdjustTab.PRESETS -> stringResource(R.string.adjust_hint_presets)
+    }
+    val currentLutName = editState.currentLutPath
+        ?.substringAfterLast("/")
+        ?.substringBeforeLast(".")
+        ?: stringResource(R.string.adjustments)
 
     val tabs = listOf(
         AdjustTab.INTENSITY to stringResource(R.string.adjustments),
         AdjustTab.ADJUST to (
-            if (!isProUser) "${stringResource(R.string.tab_adjust)} 🔒"
+            if (!isProUser) "${stringResource(R.string.tab_adjust)} ${stringResource(R.string.locked_indicator)}"
             else stringResource(R.string.tab_adjust)
         ),
         AdjustTab.GRAIN to stringResource(R.string.grain),
         AdjustTab.WATERMARK to (
-            if (!isProUser) "${stringResource(R.string.watermark)} 🔒"
+            if (!isProUser) "${stringResource(R.string.watermark)} ${stringResource(R.string.locked_indicator)}"
             else stringResource(R.string.watermark)
         ),
         AdjustTab.PRESETS to (
-            if (!isProUser) "${stringResource(R.string.tab_presets)} 🔒"
+            if (!isProUser) "${stringResource(R.string.tab_presets)} ${stringResource(R.string.locked_indicator)}"
             else stringResource(R.string.tab_presets)
         )
     )
@@ -112,76 +189,131 @@ fun AdjustPanel(
             ) {}
             .padding(top = 14.dp, bottom = 10.dp, start = 18.dp, end = 18.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(onClick = onClose) {
+                Text(
+                    stringResource(R.string.back_to_lut),
+                    color = LiquidColors.TextMediumEmphasis,
+                    fontSize = 13.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
+                )
+            }
+            Text(
+                text = currentTabLabel.uppercase(),
+                color = LiquidColors.AccentPrimary,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = 4.dp)
+            )
+        }
+
+        if (showPanelHints) {
+            LiquidNoticeCard(
+                title = currentLutName,
+                message = currentHintMessage,
+                label = currentTabLabel,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+            )
+        }
+
+        if (showPanelHints && !isProUser) {
+            LiquidNoticeCard(
+                title = stringResource(R.string.more_tools_title),
+                message = stringResource(lockedFeatureMessageResState.intValue),
+                label = stringResource(R.string.label_pro),
+                accentColor = LiquidColors.AccentSecondary,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
+
         LiquidTabBar(
             tabs = tabs,
             selectedTab = currentTab,
             onTabSelected = { tab ->
                 if (tab == AdjustTab.WATERMARK && !isProUser) {
-                    Toast.makeText(context, context.getString(R.string.pro_watermark_locked), Toast.LENGTH_SHORT).show()
+                    lockedFeatureMessageResState.intValue = R.string.pro_watermark_locked
                     return@LiquidTabBar
                 }
                 if (tab == AdjustTab.ADJUST && !isProUser) {
-                    Toast.makeText(context, context.getString(R.string.preset_pro_locked), Toast.LENGTH_SHORT).show()
+                    lockedFeatureMessageResState.intValue = R.string.pro_adjust_locked
                     return@LiquidTabBar
                 }
                 if (tab == AdjustTab.PRESETS && !isProUser) {
-                    Toast.makeText(context, context.getString(R.string.preset_pro_locked), Toast.LENGTH_SHORT).show()
+                    lockedFeatureMessageResState.intValue = R.string.preset_pro_locked
                     return@LiquidTabBar
                 }
-                selectedTab = tab.name
+                onTabSelected(tab)
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 14.dp)
         )
 
-        when (currentTab) {
-            AdjustTab.INTENSITY -> {
-                IntensityTab(
-                    intensity = editState.intensity,
-                    onIntensityChange = { value ->
-                        viewModel.setIntensity(value)
-                        if (!isWatermarkActive) {
-                            glSurfaceView?.queueEvent {
-                                renderer?.setIntensity(value)
-                                glSurfaceView.requestRender()
-                            }
-                        }
-                        onRefreshWatermark()
-                    }
-                )
-            }
-            AdjustTab.ADJUST -> {
-                BasicAdjustTab(
-                    editState = editState,
-                    viewModel = viewModel,
-                    glSurfaceView = glSurfaceView,
-                    renderer = renderer,
-                    isWatermarkActive = isWatermarkActive,
-                    onRefreshWatermark = onRefreshWatermark
-                )
-            }
-            AdjustTab.GRAIN -> {
-                GrainTab(
-                    editState = editState,
-                    viewModel = viewModel,
-                    glSurfaceView = glSurfaceView,
-                    renderer = renderer,
-                    isWatermarkActive = isWatermarkActive,
-                    onRefreshWatermark = onRefreshWatermark
-                )
-            }
-            AdjustTab.WATERMARK -> {
-                WatermarkTab(
-                    watermarkState = watermarkState,
-                    viewModel = viewModel,
-                    onRefreshWatermark = onRefreshWatermark
-                )
-            }
-            AdjustTab.PRESETS -> {
-                PresetsTab(
-                    viewModel = viewModel
-                )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 240.dp)
+        ) {
+            when (currentTab) {
+                AdjustTab.INTENSITY -> {
+                    IntensityTab(
+                        intensity = editState.intensity,
+                        overlayLutName = editState.overlayLutPath
+                            ?.substringAfterLast("/")
+                            ?.substringBeforeLast("."),
+                        overlayIntensity = editState.overlayIntensity,
+                        onIntensityChange = stableOnIntensityChange,
+                        onOverlayIntensityChange = stableOnOverlayIntensityChange,
+                        onSelectOverlayFilter = onSelectOverlayFilter,
+                        onClearOverlay = {
+                            viewModel.clearOverlayLut()
+                            onRefreshWatermark()
+                        },
+                        compareEnabled = compareEnabled,
+                        comparePosition = comparePosition,
+                        compareVertical = compareVertical,
+                        onComparePositionChange = onComparePositionChange,
+                        onCompareVerticalChange = onCompareVerticalChange,
+                    )
+                }
+                AdjustTab.ADJUST -> {
+                    BasicAdjustTab(
+                        editState = editState,
+                        viewModel = viewModel,
+                        glSurfaceView = glSurfaceView,
+                        renderer = renderer,
+                        isWatermarkActive = isWatermarkActive,
+                        onRefreshWatermark = onRefreshWatermark
+                    )
+                }
+                AdjustTab.GRAIN -> {
+                    GrainTab(
+                        editState = editState,
+                        viewModel = viewModel,
+                        glSurfaceView = glSurfaceView,
+                        renderer = renderer,
+                        isWatermarkActive = isWatermarkActive,
+                        onRefreshWatermark = onRefreshWatermark
+                    )
+                }
+                AdjustTab.WATERMARK -> {
+                    WatermarkTab(
+                        watermarkState = watermarkState,
+                        viewModel = viewModel,
+                        onRefreshWatermark = onRefreshWatermark
+                    )
+                }
+                AdjustTab.PRESETS -> {
+                    PresetsTab(
+                        viewModel = viewModel
+                    )
+                }
             }
         }
     }
@@ -193,14 +325,100 @@ fun AdjustPanel(
 @Composable
 internal fun IntensityTab(
     intensity: Float,
+    overlayLutName: String?,
+    overlayIntensity: Float,
     onIntensityChange: (Float) -> Unit,
+    onOverlayIntensityChange: (Float) -> Unit,
+    onSelectOverlayFilter: () -> Unit,
+    onClearOverlay: () -> Unit,
+    compareEnabled: Boolean,
+    comparePosition: Float,
+    compareVertical: Boolean,
+    onComparePositionChange: (Float) -> Unit,
+    onCompareVerticalChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LiquidIntensitySlider(
-        intensity = intensity,
-        onIntensityChange = onIntensityChange,
-        modifier = modifier
-    )
+    val scrollState = rememberScrollState()
+    Column(modifier = modifier.verticalScroll(scrollState)) {
+        LiquidIntensitySlider(
+            intensity = intensity,
+            onIntensityChange = onIntensityChange
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+        LiquidSectionHeader(text = stringResource(R.string.overlay_filter))
+        Text(
+            text = overlayLutName ?: stringResource(R.string.overlay_filter_none),
+            color = if (overlayLutName != null) LiquidColors.TextHighEmphasis else LiquidColors.TextMediumEmphasis,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = FontFamily.SansSerif
+        )
+        Text(
+            text = stringResource(
+                if (overlayLutName == null) R.string.overlay_filter_hint_empty else R.string.overlay_filter_hint_active
+            ),
+            color = LiquidColors.TextLowEmphasis,
+            fontSize = 12.sp,
+            lineHeight = 18.sp,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 12.dp, bottom = if (overlayLutName != null) 10.dp else 0.dp)
+        ) {
+            LiquidChip(
+                text = stringResource(if (overlayLutName == null) R.string.overlay_pick else R.string.overlay_change),
+                selected = false,
+                onClick = onSelectOverlayFilter
+            )
+            if (overlayLutName != null) {
+                LiquidChip(
+                    text = stringResource(R.string.overlay_remove),
+                    selected = false,
+                    onClick = onClearOverlay
+                )
+            }
+        }
+
+        if (overlayLutName != null) {
+            AdjustSlider(
+                label = stringResource(R.string.overlay_blend),
+                value = overlayIntensity,
+                range = 0f..1f,
+                onValueChange = onOverlayIntensityChange,
+                valueFormatter = { "${(it * 100).toInt()}%" }
+            )
+        }
+
+        if (compareEnabled) {
+            Spacer(modifier = Modifier.height(6.dp))
+            LiquidSectionHeader(text = stringResource(R.string.compare_preview))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                LiquidChip(
+                    text = stringResource(R.string.compare_vertical),
+                    selected = compareVertical,
+                    onClick = { onCompareVerticalChange(true) }
+                )
+                LiquidChip(
+                    text = stringResource(R.string.compare_horizontal),
+                    selected = !compareVertical,
+                    onClick = { onCompareVerticalChange(false) }
+                )
+            }
+            AdjustSlider(
+                label = stringResource(R.string.compare_split),
+                value = comparePosition,
+                range = 0f..1f,
+                onValueChange = onComparePositionChange,
+                valueFormatter = { "${(it * 100).toInt()}%" }
+            )
+        }
+    }
 }
 
 // ─── Basic Adjust Tab ────────────────────────────────────────
@@ -215,20 +433,27 @@ internal fun BasicAdjustTab(
     onRefreshWatermark: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
+    val scrollState = rememberScrollState()
+    Box(modifier = modifier) {
+    Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
             TextButton(onClick = {
                 viewModel.resetAdjustments()
-                glSurfaceView?.queueEvent {
-                    renderer?.setExposure(0f)
-                    renderer?.setContrast(0f)
-                    renderer?.setHighlights(0f)
-                    renderer?.setShadows(0f)
-                    renderer?.setColorTemp(0f)
-                    glSurfaceView.requestRender()
+                glSurfaceView?.let { glView ->
+                    glView.queueEvent {
+                        renderer?.setExposure(0f)
+                        renderer?.setContrast(0f)
+                        renderer?.setHighlights(0f)
+                        renderer?.setShadows(0f)
+                        renderer?.setColorTemp(0f)
+                        renderer?.setHue(0f)
+                        renderer?.setSaturation(0f)
+                        renderer?.setLuminance(0f)
+                        glView.requestRender()
+                    }
                 }
                 onRefreshWatermark()
             }) {
@@ -247,9 +472,11 @@ internal fun BasicAdjustTab(
             onValueChange = { value ->
                 viewModel.setExposure(value)
                 if (!isWatermarkActive) {
-                    glSurfaceView?.queueEvent {
-                        renderer?.setExposure(value)
-                        glSurfaceView.requestRender()
+                    glSurfaceView?.let { glView ->
+                        glView.queueEvent {
+                            renderer?.setExposure(value)
+                            glView.requestRender()
+                        }
                     }
                 }
                 onRefreshWatermark()
@@ -262,9 +489,11 @@ internal fun BasicAdjustTab(
             onValueChange = { value ->
                 viewModel.setContrast(value)
                 if (!isWatermarkActive) {
-                    glSurfaceView?.queueEvent {
-                        renderer?.setContrast(value)
-                        glSurfaceView.requestRender()
+                    glSurfaceView?.let { glView ->
+                        glView.queueEvent {
+                            renderer?.setContrast(value)
+                            glView.requestRender()
+                        }
                     }
                 }
                 onRefreshWatermark()
@@ -277,9 +506,11 @@ internal fun BasicAdjustTab(
             onValueChange = { value ->
                 viewModel.setHighlights(value)
                 if (!isWatermarkActive) {
-                    glSurfaceView?.queueEvent {
-                        renderer?.setHighlights(value)
-                        glSurfaceView.requestRender()
+                    glSurfaceView?.let { glView ->
+                        glView.queueEvent {
+                            renderer?.setHighlights(value)
+                            glView.requestRender()
+                        }
                     }
                 }
                 onRefreshWatermark()
@@ -292,9 +523,11 @@ internal fun BasicAdjustTab(
             onValueChange = { value ->
                 viewModel.setShadows(value)
                 if (!isWatermarkActive) {
-                    glSurfaceView?.queueEvent {
-                        renderer?.setShadows(value)
-                        glSurfaceView.requestRender()
+                    glSurfaceView?.let { glView ->
+                        glView.queueEvent {
+                            renderer?.setShadows(value)
+                            glView.requestRender()
+                        }
                     }
                 }
                 onRefreshWatermark()
@@ -307,15 +540,82 @@ internal fun BasicAdjustTab(
             onValueChange = { value ->
                 viewModel.setColorTemp(value)
                 if (!isWatermarkActive) {
-                    glSurfaceView?.queueEvent {
-                        renderer?.setColorTemp(value)
-                        glSurfaceView.requestRender()
+                    glSurfaceView?.let { glView ->
+                        glView.queueEvent {
+                            renderer?.setColorTemp(value)
+                            glView.requestRender()
+                        }
+                    }
+                }
+                onRefreshWatermark()
+            }
+        )
+        AdjustSlider(
+            label = stringResource(R.string.label_hue),
+            value = editState.hue,
+            range = -1f..1f,
+            onValueChange = { value ->
+                viewModel.setHue(value)
+                if (!isWatermarkActive) {
+                    glSurfaceView?.let { glView ->
+                        glView.queueEvent {
+                            renderer?.setHue(value)
+                            glView.requestRender()
+                        }
+                    }
+                }
+                onRefreshWatermark()
+            }
+        )
+        AdjustSlider(
+            label = stringResource(R.string.label_saturation),
+            value = editState.saturation,
+            range = -1f..1f,
+            onValueChange = { value ->
+                viewModel.setSaturation(value)
+                if (!isWatermarkActive) {
+                    glSurfaceView?.let { glView ->
+                        glView.queueEvent {
+                            renderer?.setSaturation(value)
+                            glView.requestRender()
+                        }
+                    }
+                }
+                onRefreshWatermark()
+            }
+        )
+        AdjustSlider(
+            label = stringResource(R.string.label_luminance),
+            value = editState.luminance,
+            range = -1f..1f,
+            onValueChange = { value ->
+                viewModel.setLuminance(value)
+                if (!isWatermarkActive) {
+                    glSurfaceView?.let { glView ->
+                        glView.queueEvent {
+                            renderer?.setLuminance(value)
+                            glView.requestRender()
+                        }
                     }
                 }
                 onRefreshWatermark()
             }
         )
     }
+    if (scrollState.canScrollForward) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, LiquidColors.SurfaceDark.copy(alpha = 0.92f))
+                    )
+                )
+        )
+    }
+    } // Box
 }
 
 @Composable
@@ -324,11 +624,14 @@ private fun AdjustSlider(
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
+    valueFormatter: (Float) -> String = {
+        val displayValue = (it * 100).toInt()
+        "${if (displayValue > 0) "+" else ""}$displayValue"
+    },
     modifier: Modifier = Modifier
 ) {
     var sliderValue by remember(value) { mutableFloatStateOf(value) }
     val haptic = LocalHapticFeedback.current
-    val displayValue = (sliderValue * 100).toInt()
 
     Row(
         modifier = modifier
@@ -361,7 +664,7 @@ private fun AdjustSlider(
             )
         )
         Text(
-            "${if (displayValue > 0) "+" else ""}$displayValue",
+            valueFormatter(sliderValue),
             color = LiquidColors.AccentPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
@@ -470,7 +773,7 @@ private fun PresetItem(
         ) {
             Icon(
                 painter = painterResource(android.R.drawable.ic_menu_delete),
-                contentDescription = null,
+                contentDescription = stringResource(R.string.cd_delete_preset),
                 tint = LiquidColors.TextMediumEmphasis,
                 modifier = Modifier.size(18.dp)
             )

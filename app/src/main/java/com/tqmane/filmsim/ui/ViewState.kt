@@ -37,10 +37,13 @@ sealed interface ViewState {
 data class EditState(
     val currentLutPath: String? = null,
     val currentLut: CubeLUT? = null,
+    val overlayLutPath: String? = null,
+    val overlayLut: CubeLUT? = null,
     /** Monotonically increasing version; guarantees StateFlow emission on LUT change
      *  (FloatBuffer inside CubeLUT has unstable equals after GL consumption). */
     val lutVersion: Long = 0,
     val intensity: Float = 1f,
+    val overlayIntensity: Float = 0.35f,
     val grainEnabled: Boolean = false,
     val grainIntensity: Float = 0.5f,
     val grainStyle: String = "Xiaomi",
@@ -50,7 +53,10 @@ data class EditState(
     val contrast: Float = 0f,
     val highlights: Float = 0f,
     val shadows: Float = 0f,
-    val colorTemp: Float = 0f
+    val colorTemp: Float = 0f,
+    val hue: Float = 0f,
+    val saturation: Float = 0f,
+    val luminance: Float = 0f
 )
 
 // ─── Watermark State ────────────────────────────────────
@@ -83,6 +89,8 @@ data class Preset(
     val name: String,
     val lutPath: String?,
     val intensity: Float = 1f,
+    val overlayLutPath: String? = null,
+    val overlayIntensity: Float = 0.35f,
     val grainEnabled: Boolean = false,
     val grainIntensity: Float = 0.5f,
     val grainStyle: String = "Xiaomi",
@@ -91,6 +99,9 @@ data class Preset(
     val highlights: Float = 0f,
     val shadows: Float = 0f,
     val colorTemp: Float = 0f,
+    val hue: Float = 0f,
+    val saturation: Float = 0f,
+    val luminance: Float = 0f,
     val watermarkStyleName: String = "NONE",
     val watermarkDeviceName: String = "",
     val watermarkTimeText: String = "",

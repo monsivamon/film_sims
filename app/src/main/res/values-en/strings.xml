@@ -2,10 +2,21 @@
 <resources>
     <string name="app_name">FilmSims</string>
     
+    <!-- Content descriptions (accessibility) -->
+    <string name="cd_add_photo">Add photo</string>
+    <string name="cd_open_settings">Open settings</string>
+    <string name="cd_save_image">Save image</string>
+    <string name="cd_pick_image">Pick an image</string>
+
     <!-- Image loading -->
     <string name="image_loaded">Image loaded: %1$s (Preview: %2$s)</string>
     <string name="image_load_failed">Failed to load image: %1$s</string>
+    <string name="security_environment_untrusted">Security check failed. Editing is unavailable on this device.</string>
     <string name="select_image_first">Please select an image first</string>
+    <string name="loading_image">Loading image…</string>
+    <string name="error_title">Something went wrong</string>
+    <string name="error_retry">Try Again</string>
+    <string name="error_pick_another">Pick Another</string>
     
     <!-- Export -->
     <string name="exporting">Exporting…</string>
@@ -134,6 +145,7 @@
     <string name="btn_open_gallery">Open Gallery</string>
     <string name="header_grain">Effects</string>
     <string name="label_film_grain">Film Grain</string>
+    <string name="label_grain_style">Grain Style</string>
     <string name="header_camera">Camera</string>
     <string name="header_style">Style</string>
     <string name="label_intensity">Intensity</string>
@@ -147,4 +159,51 @@
     <string name="label_license_permanent">Permanent License</string>
     <string name="label_license_version_mismatch">Your license is limited to version %1$s!</string>
     <string name="label_purchase_license">Purchase a License → tqmane.booth.pm</string>
+
+    <string name="workflow_title">How it works</string>
+    <string name="workflow_step_import">Import a photo to start the preview</string>
+    <string name="workflow_step_choose">Choose a brand and tap a look to preview</string>
+    <string name="workflow_step_refine_save">Fine-tune the result, then export when ready</string>
+    <string name="section_brands">Brands</string>
+    <string name="section_collections">Collections</string>
+    <string name="section_looks">Looks</string>
+    <string name="single_collection_label">Curated collection</string>
+    <string name="look_count_label">%1$d looks ready</string>
+    <string name="look_preview_hint">%1$d looks are ready to preview. Tap a card once to preview and again to refine.</string>
+    <string name="look_ready_hint">Tap the selected look again to open adjustments.</string>
+    <string name="more_brands_title">More looks are available</string>
+    <string name="more_tools_title">More finishing tools are available</string>
+    <string name="premium_brands_hint">Sign in to unlock more brands and the full finishing workflow.</string>
+    <string name="pro_adjust_locked">License feature: Sign in to use tone adjustments</string>
+    <string name="pro_adjust_tools_hint">Sign in to unlock tone adjustments, watermarks, and presets in one place.</string>
+    <string name="adjust_hint_intensity">Start by balancing LUT strength so the overall mood feels right.</string>
+    <string name="adjust_hint_basic">Shape exposure and contrast before adding grain or a watermark.</string>
+    <string name="adjust_hint_grain">Use grain to add texture after the LUT and tone feel settled.</string>
+    <string name="adjust_hint_watermark">Finish the frame with a branded watermark once the edit is ready.</string>
+    <string name="label_watermark_style">Style</string>
+    <string name="label_watermark_brand">Brand</string>
+    <string name="adjust_hint_presets">Save your current recipe so you can reuse it on the next photo.</string>
+    <string name="compare_preview">Compare preview</string>
+    <string name="compare_preview_hint">Switch on before and after preview to compare the current edit against the original image.</string>
+    <string name="compare_split">Split</string>
+    <string name="compare_before">Before</string>
+    <string name="compare_after">After</string>
+    <string name="compare_vertical">Vertical</string>
+    <string name="compare_horizontal">Horizontal</string>
+    <string name="label_hue">Hue</string>
+    <string name="label_saturation">Saturation</string>
+    <string name="label_luminance">Luminance</string>
+    <string name="overlay_filter">Overlay filter</string>
+    <string name="overlay_filter_none">No overlay selected</string>
+    <string name="overlay_filter_hint_empty">Add a second look to blend styles without replacing your base LUT.</string>
+    <string name="overlay_filter_hint_active">Blend a second look on top of the base LUT for extra color character.</string>
+    <string name="overlay_pick">Pick overlay</string>
+    <string name="overlay_change">Change overlay</string>
+    <string name="overlay_remove">Remove overlay</string>
+    <string name="overlay_blend">Overlay blend</string>
+    <string name="overlay_selection_title">Choose an overlay look</string>
+    <string name="overlay_selection_hint">Pick a second LUT to layer over your current look. Use blend to control the mix.</string>
+    <string name="overlay_done">Done</string>
+    <string name="panel_hints_setting">Show panel hints</string>
+    <string name="panel_hints_setting_description">Toggle helper cards inside the LUT and adjustment panels.</string>
 </resources>

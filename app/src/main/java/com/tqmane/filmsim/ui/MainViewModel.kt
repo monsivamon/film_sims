@@ -50,7 +50,7 @@ class MainViewModel @Inject constructor(
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
-    // ─── State flows ────────────────────────────────────
+    // --- State flows ---
 
     private val _viewState = MutableStateFlow<ViewState>(ViewState.Empty)
     val viewState: StateFlow<ViewState> = _viewState.asStateFlow()
@@ -100,11 +100,11 @@ class MainViewModel @Inject constructor(
     private val _uiEvent = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val uiEvent: SharedFlow<UiEvent> = _uiEvent.asSharedFlow()
 
-    // ─── Watermark preview job ──────────────────────────
+    // --- Watermark preview job ---
 
     private var watermarkPreviewJob: Job? = null
 
-    // ─── Image loading ──────────────────────────────────
+    // --- Image loading ---
 
     fun loadImage(uri: Uri) {
         _viewState.value = ViewState.Loading
@@ -142,7 +142,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    // ─── LUT application ────────────────────────────────
+    // --- LUT application ---
 
     fun applyLut(lutItem: LutItem) {
         if (!securityCheck.isTrusted()) return
@@ -164,7 +164,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    // ─── Adjustments ────────────────────────────────────
+    // --- Adjustments ---
 
     fun setIntensity(value: Float) {
         _editState.value = _editState.value.copy(intensity = value)
@@ -186,7 +186,7 @@ class MainViewModel @Inject constructor(
         settings.lastGrainStyle = style
     }
 
-    // ─── Watermark ──────────────────────────────────────
+    // --- Watermark ---
 
     fun updateWatermarkStyle(style: WatermarkProcessor.WatermarkStyle) {
         _watermarkState.value = _watermarkState.value.copy(style = style)
@@ -227,34 +227,28 @@ class MainViewModel @Inject constructor(
                 locationText = wm.locationText.ifEmpty { null },
                 lensInfo = wm.lensInfo.ifEmpty { null }
             )
+
+            // [Fix 1] Provide BOTH the base LUT and the overlay LUT
             val result = watermarkUseCase.renderPreview(
-                preview, edit.currentLut, edit.intensity, config
+                preview,
+                config = config,
+                lut = edit.currentLut,
+                intensity = edit.intensity,
+                overlayLut = null,
+                overlayIntensity = 0f
             )
             withContext(kotlinx.coroutines.Dispatchers.Main) { callback(result) }
         }
     }
 
-    /**
-     * Check watermark state directly from StateFlow (not stale Compose state)
-     * and refresh the watermark preview if a watermark is active.
-     */
     fun refreshWatermarkIfActive(callback: (Bitmap) -> Unit) {
         val wm = _watermarkState.value
         if (wm.style == WatermarkProcessor.WatermarkStyle.NONE) return
         renderWatermarkPreview(callback)
     }
 
-    // ─── Save / Export ──────────────────────────────────
+    // --- Save / Export ---
 
-    /**
-     * High-resolution export pipeline.
-     *
-     * 1. Loads full-res bitmap on-demand from [ViewState.Content.originalUri]
-     * 2. Renders LUT + grain on the GL thread via [GlCommandExecutor] (no CountDownLatch)
-     * 3. Applies watermark
-     * 4. Saves to MediaStore
-     * 5. Immediately recycles the full-res bitmap
-     */
     fun saveHighResImage(
         glExecutor: GlCommandExecutor,
         gpuExportRenderer: GpuExportRenderer?,
@@ -273,7 +267,6 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch(ioDispatcher) {
             runCatching {
-                // 1. Load full-res on-demand (not kept in memory)
                 val sourceBitmap = imageLoadUseCase.loadFullResolution(contentResolver, state.originalUri)
 
                 try {
@@ -282,34 +275,46 @@ class MainViewModel @Inject constructor(
                     } else null
                     val effectiveIntensity = if (lut != null) edit.intensity else 0f
 
-                    // 2. GPU rendering via suspendCancellableCoroutine
                     var outputBitmap: Bitmap? = runCatching {
                         glExecutor.execute {
                             if (gpuExportRenderer == null) {
                                 throw IllegalStateException("GpuExportRenderer not initialized")
                             }
                             gpuExportRenderer.setGrainStyle(edit.grainStyle)
+
+                            // [Fix 2] Provide BOTH the base LUT and the overlay LUT
                             gpuExportRenderer.renderHighRes(
-                                sourceBitmap, lut, effectiveIntensity,
-                                edit.grainEnabled, edit.grainIntensity, 4.0f
+                                sourceBitmap,
+                                lut = lut,
+                                intensity = effectiveIntensity,
+                                overlayLut = null,
+                                overlayIntensity = 0f,
+                                grainEnabled = edit.grainEnabled,
+                                grainIntensity = edit.grainIntensity,
+                                grainScale = 4.0f
                             )
                         }
                     }.getOrNull()
 
                     var shouldRecycleOutput = true
 
-                    // 3. CPU fallback
                     if (outputBitmap == null) {
                         withContext(kotlinx.coroutines.Dispatchers.Main) { onCpuFallback() }
                         outputBitmap = if (lut != null) {
-                            watermarkUseCase.applyCpuLut(sourceBitmap, lut, effectiveIntensity)
+                            // [Fix 3] Provide BOTH the base LUT and the overlay LUT
+                            watermarkUseCase.applyCpuLut(
+                                sourceBitmap,
+                                lut = lut,
+                                intensity = effectiveIntensity,
+                                overlayLut = null,
+                                overlayIntensity = 0f
+                            )
                         } else {
                             shouldRecycleOutput = false
                             sourceBitmap
                         }
                     }
 
-                    // 4. Watermark
                     if (wm.style != WatermarkProcessor.WatermarkStyle.NONE) {
                         val wmConfig = WatermarkProcessor.WatermarkConfig(
                             style = wm.style,
@@ -326,13 +331,11 @@ class MainViewModel @Inject constructor(
                         }
                     }
 
-                    // 5. Save
                     val saveResult = watermarkUseCase.saveBitmapWithExif(
                         outputBitmap, state.originalUri,
                         settings.savePath, settings.saveQuality
                     )
 
-                    // 6. Cleanup full-res immediately
                     if (shouldRecycleOutput && outputBitmap != sourceBitmap) outputBitmap.recycle()
                     if (sourceBitmap != outputBitmap) sourceBitmap.recycle()
 
@@ -349,16 +352,12 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    // ─── Update check ───────────────────────────────────
-
     fun checkForUpdates() {
         viewModelScope.launch {
             runCatching { updateChecker.checkForUpdate() }
                 .onSuccess { release -> release?.let { _uiEvent.emit(UiEvent.ShowUpdateDialog(it)) } }
         }
     }
-
-    // ─── Cleanup ────────────────────────────────────────
 
     override fun onCleared() {
         super.onCleared()

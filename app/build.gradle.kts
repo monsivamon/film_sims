@@ -17,8 +17,8 @@ android {
         applicationId = "com.tqmane.filmsim"
         minSdk = 26
         targetSdk = 34
-        versionCode = 17
-        versionName = "1.1.5"
+        versionCode = 20
+        versionName = "1.1.7"
 
         // Read ASSET_KEY from secrets.properties (or use a fallback for external contributors)
         val secretsFile = rootProject.file("secrets.properties")
@@ -96,6 +96,7 @@ dependencies {
 
     // Firebase
     implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.firestore.ktx)
 

@@ -88,6 +88,12 @@ tecno_watermark_extracted/
 app_bak/
 .github/
 .agent/
+.gemini/
 
 # Secret
 app/src/main/java/com/tqmane/filmsim/data/ProUserRepository.kt
+app/src/main/java/com/tqmane/filmsim/MainActivity.kt
+app/src/main/java/com/tqmane/filmsim/ui/MainViewModel.kt
+app/src/main/java/com/tqmane/filmsim/ui/component/TopBar.kt
+app/src/main/res/values/strings.xml
+app/src/main/res/drawable/ic_compare.xml
