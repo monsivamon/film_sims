@@ -1,4 +1,4 @@
-[English](README.md) | [日本語](README_ja.md) | [한국어](README_ko.md) | [简体中文](README_zh.md)
+
 
 # FilmSims — Film Simulator
 
