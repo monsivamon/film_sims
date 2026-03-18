@@ -121,7 +121,7 @@ fun MainScreen(
                     }
                     is UiEvent.ShowRawToast ->
                         Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
-                    is UiEvent.ShowUpdateDialog -> pendingUpdate = event.release
+                    //is UiEvent.ShowUpdateDialog -> pendingUpdate = event.release
                     is UiEvent.ImageSaved -> {
                         val msg = context.getString(
                             R.string.image_saved,

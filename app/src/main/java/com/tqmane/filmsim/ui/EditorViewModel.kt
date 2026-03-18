@@ -77,26 +77,14 @@ class EditorViewModel @Inject constructor(
     private val _showPanelHints = MutableStateFlow(settings.panelHintsEnabled)
     val showPanelHints: StateFlow<Boolean> = _showPanelHints.asStateFlow()
 
-    // Lifted UI State for Brand/Category Selection
-    private val _selectedBrandIndex = MutableStateFlow(0)
-    val selectedBrandIndex: StateFlow<Int> = _selectedBrandIndex.asStateFlow()
-
-    private val _selectedCategoryIndex = MutableStateFlow(0)
-    val selectedCategoryIndex: StateFlow<Int> = _selectedCategoryIndex.asStateFlow()
-
-    fun setSelectedBrandIndex(index: Int) {
-        _selectedBrandIndex.value = index
-    }
-
-    fun setSelectedCategoryIndex(index: Int) {
-        _selectedCategoryIndex.value = index
-    }
-
     private val _watermarkState = MutableStateFlow(WatermarkState())
     val watermarkState: StateFlow<WatermarkState> = _watermarkState.asStateFlow()
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+
+    private val _pendingUpdate = MutableStateFlow<com.tqmane.filmsim.util.ReleaseInfo?>(null)
+    val pendingUpdate: StateFlow<com.tqmane.filmsim.util.ReleaseInfo?> = _pendingUpdate.asStateFlow()
 
     private val _uiEvent = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val uiEvent: SharedFlow<UiEvent> = _uiEvent.asSharedFlow()
@@ -163,6 +151,18 @@ class EditorViewModel @Inject constructor(
 
     fun applyOverlayLut(lutItem: LutItem) {
         applyParsedLut(lutItem.assetPath, asOverlay = true)
+    }
+
+    fun resolveLutDisplayName(path: String?): String? {
+        if (path == null) return null
+
+        return brands
+            .asSequence()
+            .flatMap { it.categories.asSequence() }
+            .flatMap { it.items.asSequence() }
+            .firstOrNull { it.assetPath == path }
+            ?.name
+            ?: path.substringAfterLast('/').substringBeforeLast('.')
     }
 
     fun clearOverlayLut() {
@@ -601,9 +601,18 @@ class EditorViewModel @Inject constructor(
 
     fun checkForUpdates() {
         viewModelScope.launch {
-            runCatching { updateChecker.checkForUpdate() }
-                .onSuccess { release -> release?.let { _uiEvent.emit(UiEvent.ShowUpdateDialog(it)) } }
+            val release = try {
+                updateChecker.checkForUpdate()
+            } catch (e: Exception) {
+                _uiEvent.emit(UiEvent.ShowToast(R.string.update_check_failed))
+                null
+            }
+            _pendingUpdate.value = release
         }
+    }
+
+    fun dismissUpdate() {
+        _pendingUpdate.value = null
     }
 
     // ─── Cleanup ────────────────────────────────────────

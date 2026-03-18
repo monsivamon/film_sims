@@ -1,5 +1,3 @@
-
-
 # FilmSims — Film Simulator
 
 **Breathe life into your photos with the essence of film.**  
@@ -34,7 +32,7 @@ A photo editing app that reproduces the color tones of film stocks and camera br
 
 - Honor Magic 8 Pro: MagicOS 10.0.0.127
 - Huawei Nova 11: HarmonyOS 4.0
-- Leica FOTS: https://play.google.com/store/apps/details?id=com.leica_camera.app
+- Leica FOTOS: https://play.google.com/store/apps/details?id=com.leica_camera.app
 - Leica LUX: https://apps.apple.com/jp/app/leica-lux-pro-manual-camera/id6477182657
 - MEIZU 22: Flyme AIOS 2
 - Nothing Phone (3a): NothingOS4.0
@@ -70,6 +68,5 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 Please note that **this repository will NOT work fully if built out-of-the-box.** To respect and protect the original author's proprietary data and intellectual property, this repository does **NOT** include:
 1. Proprietary filter assets (LUTs, encrypted textures, etc.).
 2. The specific build configurations and keys required for decryption.
-3. Firebase configuration files (`google-services.json`).
 
 If you wish to build this project locally for development, you must provide your own configuration files and ensure all required asset files are placed within the `app/src/main/assets/` directory.

@@ -19,7 +19,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -132,9 +131,11 @@ private fun BrandGenreLutSection(
     val lutItems = remember(selectedBrandIndex, selectedCategoryIndex) { categories.getOrNull(selectedCategoryIndex)?.items.orEmpty() }
     val currentBrand = brands.getOrNull(selectedBrandIndex)
     val currentCategory = categories.getOrNull(selectedCategoryIndex)
-    val selectedLutName = (if (isSelectingOverlay) editState.overlayLutPath else editState.currentLutPath)
-        ?.substringAfterLast("/")
-        ?.substringBeforeLast(".")
+    val selectedLutName = remember(editState.currentLutPath, editState.overlayLutPath, isSelectingOverlay) {
+        viewModel.resolveLutDisplayName(
+            if (isSelectingOverlay) editState.overlayLutPath else editState.currentLutPath
+        )
+    }
     val collectionLabel = if (categories.size > 1) {
         currentCategory?.displayName ?: stringResource(R.string.section_collections)
     } else {
@@ -176,6 +177,15 @@ private fun BrandGenreLutSection(
                     stringResource(R.string.look_preview_hint, lutItems.size)
                 },
                 label = collectionLabel,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
+
+        if (!showPanelHints && !isSelectingOverlay) {
+            LiquidNoticeCard(
+                title = stringResource(R.string.lut_browser_title),
+                message = stringResource(R.string.lut_browser_hint),
+                label = stringResource(R.string.section_looks),
                 modifier = Modifier.padding(bottom = 12.dp)
             )
         }
@@ -250,7 +260,7 @@ private fun BrandGenreLutSection(
             itemsIndexed(brands) { index, brand ->
                 val isFree = brand.name in freeBrands
                 LiquidChip(
-                    text = if (!isFree && !isProUser) "${brand.displayName} 🔒" else brand.displayName,
+                    text = brand.displayName,
                     selected = index == selectedBrandIndex,
                     onClick = {
                         if (!isFree && !isProUser) {

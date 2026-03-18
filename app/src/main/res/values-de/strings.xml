@@ -185,4 +185,25 @@
     <string name="overlay_done">Fertig</string>
     <string name="panel_hints_setting">Panel-Hinweise anzeigen</string>
     <string name="panel_hints_setting_description">Blendet Hilfekarten im LUT- und Anpassungsbereich ein oder aus.</string>
+    <string name="gesture_hint_title">Vorschau-Gesten</string>
+    <string name="gesture_hint_body">Tippe auf das Bild fuer eine stoerungsfreie Ansicht. Gedrueckt halten vergleicht deine Bearbeitung kurz mit dem Basisfoto.</string>
+    <string name="gesture_hint_dismiss">Verstanden</string>
+    <string name="save_success_dismiss_hint">Zum Schliessen tippen</string>
+    <string name="lut_browser_title">Looks gezielter durchsuchen</string>
+    <string name="lut_browser_hint">Waehle zuerst eine Marke, grenze dann die Sammlung ein und tippe auf eine Look-Karte fuer die Vorschau.</string>
+    <string name="watermark_flow_title">Wasserzeichen Schritt fuer Schritt</string>
+    <string name="watermark_flow_pick_brand">Starte mit einer Marke, um passende Wasserzeichenstile zu sehen.</string>
+    <string name="watermark_flow_customize">Waehle einen Stil und fuelle nur die Felder aus, die dieses Wasserzeichen verwendet.</string>
+    <string name="watermark_style_waiting_title">Stile erscheinen nach der Markenauswahl</string>
+    <string name="watermark_style_waiting_body">Waehle zuerst eine Marke, damit dieses Panel passende Wasserzeichenstile anzeigen kann.</string>
+    <string name="watermark_details_title">Details</string>
+    <string name="intensity_strength_title">Zuerst die Gesamtstaerke festlegen</string>
+    <string name="intensity_strength_hint">Passe erst die Hauptwirkung an, bevor du Overlays, Korn oder Vergleichswerkzeuge darueberlegst.</string>
+    <string name="overlay_active_title">Overlay aktiv: %1$s</string>
+    <string name="overlay_active_hint">Regle die Mischung so, dass der Grundlook erkennbar bleibt und trotzdem mehr Farbcharakter dazukommt.</string>
+    <string name="compare_active_title">Vergleichsmodus ist aktiv</string>
+    <string name="compare_active_hint">Wenn sich die Teilung unpraktisch anfuehlt, wechsle die Richtung und ziehe den Trenner zu wichtigen Bildbereichen.</string>
+    <string name="presets_hint_title">Wiederverwendbare Looks speichern</string>
+    <string name="presets_hint_body_empty">Mit Presets kannst du spaeter das komplette Rezept wiederverwenden, inklusive LUT, Overlay, Tonung und Korn.</string>
+    <string name="presets_hint_body_ready">Tippe auf ein Preset, um es sofort zu laden, oder speichere den aktuellen Look, wenn er sich lohnt aufzubewahren.</string>
 </resources>

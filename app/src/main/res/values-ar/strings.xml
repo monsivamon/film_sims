@@ -185,4 +185,25 @@
     <string name="overlay_done">تم</string>
     <string name="panel_hints_setting">إظهار تلميحات اللوحة</string>
     <string name="panel_hints_setting_description">يبدل بين إظهار بطاقات المساعدة داخل لوحتي LUT والتعديلات أو إخفائها.</string>
+    <string name="gesture_hint_title">ايماءات المعاينة</string>
+    <string name="gesture_hint_body">اضغط على الصورة للحصول على عرض خال من المشتتات. اضغط مطولا للمقارنة المؤقتة بين التعديل والصورة الاساسية.</string>
+    <string name="gesture_hint_dismiss">حسنا</string>
+    <string name="save_success_dismiss_hint">اضغط للاغلاق</string>
+    <string name="lut_browser_title">تصفح الاطلالات بوضوح اكبر</string>
+    <string name="lut_browser_hint">اختر العلامة اولا، ثم ضيق المجموعة، وبعدها اضغط على بطاقة الاطلالة لمعاينتها على صورتك.</string>
+    <string name="watermark_flow_title">ابن العلامة المائية خطوة بخطوة</string>
+    <string name="watermark_flow_pick_brand">ابدأ بعلامة تجارية لعرض انماط العلامة المائية المطابقة.</string>
+    <string name="watermark_flow_customize">اختر نمطا ثم املأ فقط التفاصيل التي يستخدمها ذلك النمط.</string>
+    <string name="watermark_style_waiting_title">تظهر الانماط بعد اختيار العلامة</string>
+    <string name="watermark_style_waiting_body">اختر العلامة اولا حتى تعرض هذه اللوحة انماط العلامة المائية المناسبة.</string>
+    <string name="watermark_details_title">التفاصيل</string>
+    <string name="intensity_strength_title">اضبط الشدة العامة اولا</string>
+    <string name="intensity_strength_hint">ارفع او اخفض الاطلالة الرئيسية قبل اضافة التراكبات او الحبيبات او ادوات المقارنة.</string>
+    <string name="overlay_active_title">التراكب نشط: %1$s</string>
+    <string name="overlay_active_hint">اضبط المزج بحيث تبقى الاطلالة الاساسية واضحة مع اضافة طابع لوني اقوى.</string>
+    <string name="compare_active_title">وضع المقارنة مفعل</string>
+    <string name="compare_active_hint">اذا كان اتجاه التقسيم غير مريح فبدله ثم اسحب الفاصل لفحص الاجزاء المهمة من الصورة.</string>
+    <string name="presets_hint_title">احفظ اطلالات قابلة لاعادة الاستخدام</string>
+    <string name="presets_hint_body_empty">تسمح لك الاعدادات المسبقة باعادة استخدام الوصفة الكاملة لاحقا بما يشمل LUT والتراكب والدرجة والحبيبات.</string>
+    <string name="presets_hint_body_ready">اضغط على اعداد مسبق لتحميله فورا، او احفظ الوصفة الحالية عندما تجد اطلالة تستحق الاحتفاظ بها.</string>
 </resources>
